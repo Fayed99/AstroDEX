@@ -392,6 +392,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get('/api/analytics', async (req, res) => {
+    try {
+      // Get all transactions
+      const transactions = await storage.getAllTransactions();
+
+      // Get all pools
+      const pools = await storage.getAllPools();
+
+      // Calculate 24h volume (sum of all swap transactions)
+      const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      const recentTransactions = transactions.filter(tx =>
+        tx.type === 'swap' && new Date(tx.createdAt) > oneDayAgo
+      );
+
+      let totalVolume24h = 0;
+      for (const tx of recentTransactions) {
+        const amount = parseFloat(tx.amount);
+        // Convert to USD using price oracle
+        const tokenPrice = priceOracle.getPrice(tx.fromToken);
+        totalVolume24h += amount * tokenPrice;
+      }
+
+      // Calculate total liquidity (sum of all pool reserves in USD)
+      let totalLiquidity = 0;
+      for (const pool of pools) {
+        const tokenAPrice = priceOracle.getPrice(pool.tokenA);
+        const tokenBPrice = priceOracle.getPrice(pool.tokenB);
+        const reserveAValue = parseFloat(pool.reserveA) * tokenAPrice;
+        const reserveBValue = parseFloat(pool.reserveB) * tokenBPrice;
+        totalLiquidity += reserveAValue + reserveBValue;
+      }
+
+      // Calculate average trade size
+      const avgTradeSize = recentTransactions.length > 0
+        ? totalVolume24h / recentTransactions.length
+        : 0;
+
+      // Get active pools count
+      const activePools = pools.length;
+
+      res.json({
+        success: true,
+        data: {
+          totalVolume24h,
+          totalLiquidity,
+          activePools,
+          avgTradeSize,
+          totalTransactions: transactions.length,
+          transactions24h: recentTransactions.length
+        }
+      });
+    } catch (error: any) {
+      console.error('Get analytics error:', error);
+      res.status(500).json({ error: error.message || 'Failed to get analytics' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

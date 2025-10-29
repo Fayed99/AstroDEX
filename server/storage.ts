@@ -13,14 +13,15 @@ export interface IStorage {
   getPool(tokenA: string, tokenB: string): Promise<Pool | undefined>;
   getAllPools(): Promise<Pool[]>;
   updatePoolReserves(id: string, reserveA: string, reserveB: string): Promise<Pool>;
-  
+
   getBalance(walletAddress: string, token: string): Promise<Balance | undefined>;
   upsertBalance(balance: InsertBalance): Promise<Balance>;
-  
+
   createTransaction(transaction: InsertTransaction): Promise<Transaction>;
   getTransactionsByWallet(walletAddress: string): Promise<Transaction[]>;
+  getAllTransactions(): Promise<Transaction[]>;
   updateTransactionStatus(id: string, status: string, txHash?: string): Promise<Transaction>;
-  
+
   createLimitOrder(order: InsertLimitOrder): Promise<LimitOrder>;
   getLimitOrdersByWallet(walletAddress: string): Promise<LimitOrder[]>;
   updateLimitOrderStatus(id: string, status: string): Promise<LimitOrder>;
@@ -144,6 +145,12 @@ export class DbStorage implements IStorage {
     return await db.select()
       .from(transactions)
       .where(eq(transactions.walletAddress, walletAddress))
+      .orderBy(desc(transactions.timestamp));
+  }
+
+  async getAllTransactions(): Promise<Transaction[]> {
+    return await db.select()
+      .from(transactions)
       .orderBy(desc(transactions.timestamp));
   }
 
