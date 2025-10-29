@@ -35,14 +35,14 @@ export function CreatePoolModal({ open, onOpenChange, onCreatePool, isProcessing
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent data-testid="modal-create-pool" className="sm:max-w-md">
+      <DialogContent data-testid="modal-create-pool" className="sm:max-w-md bg-slate-900 border-purple-500/20">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold">Create New Pool</DialogTitle>
+          <DialogTitle className="text-2xl font-bold text-white">Create New Pool</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4 pt-4">
           <div className="space-y-2">
-            <Label className="text-sm font-medium">Select Token Pair</Label>
+            <Label className="text-sm font-medium text-gray-200">Select Token Pair</Label>
             <div className="grid grid-cols-2 gap-3">
               <Select value={tokenA} onValueChange={(value) => setTokenA(value as TokenSymbol)}>
                 <SelectTrigger data-testid="select-pool-token-a">
@@ -68,7 +68,7 @@ export function CreatePoolModal({ open, onOpenChange, onCreatePool, isProcessing
           </div>
 
           <div className="space-y-2">
-            <Label className="text-sm font-medium">Fee Tier</Label>
+            <Label className="text-sm font-medium text-gray-200">Fee Tier</Label>
             <div className="grid grid-cols-3 gap-2">
               {['0.05', '0.3', '1.0'].map(feeVal => (
                 <Button
@@ -85,7 +85,7 @@ export function CreatePoolModal({ open, onOpenChange, onCreatePool, isProcessing
           </div>
 
           <div className="space-y-2">
-            <Label className="text-sm font-medium">Initial Liquidity</Label>
+            <Label className="text-sm font-medium text-gray-200">Initial Liquidity</Label>
             <div className="space-y-3">
               <Input
                 data-testid="input-pool-amount-a"
@@ -93,6 +93,7 @@ export function CreatePoolModal({ open, onOpenChange, onCreatePool, isProcessing
                 value={amountA}
                 onChange={(e) => setAmountA(e.target.value)}
                 placeholder={`Amount of ${tokenA}`}
+                className="bg-slate-800 border-slate-700 text-white placeholder:text-gray-500"
               />
               <Input
                 data-testid="input-pool-amount-b"
@@ -100,14 +101,15 @@ export function CreatePoolModal({ open, onOpenChange, onCreatePool, isProcessing
                 value={amountB}
                 onChange={(e) => setAmountB(e.target.value)}
                 placeholder={`Amount of ${tokenB}`}
+                className="bg-slate-800 border-slate-700 text-white placeholder:text-gray-500"
               />
             </div>
           </div>
 
-          <div className="bg-muted rounded-lg p-3 text-sm">
+          <div className="bg-slate-800 rounded-lg p-3 text-sm border border-slate-700">
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Initial Price</span>
-              <span className="font-mono font-semibold" data-testid="text-initial-price">
+              <span className="text-gray-400">Initial Price</span>
+              <span className="font-mono font-semibold text-white" data-testid="text-initial-price">
                 1 {tokenA} = {initialPrice} {tokenB}
               </span>
             </div>

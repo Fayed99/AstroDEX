@@ -104,20 +104,20 @@ export function LiquidityCard({ isConnected, onAddLiquidity, onCreatePool, isPro
           </div>
         </div>
 
-        <div className="bg-muted/50 rounded-lg p-4 space-y-2 text-sm">
+        <div className="bg-slate-800 border border-slate-700 rounded-lg p-4 space-y-2 text-sm">
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Estimated Pool Share</span>
-            <span className="font-mono font-semibold">{estimatedShare}%</span>
+            <span className="text-gray-400">Estimated Pool Share</span>
+            <span className="font-mono font-semibold text-white">{estimatedShare}%</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Exchange Rate</span>
-            <span className="font-mono">
+            <span className="text-gray-400">Exchange Rate</span>
+            <span className="font-mono text-white">
               1 {tokenA} = {amountB && amountA ? (parseFloat(amountB) / parseFloat(amountA)).toFixed(4) : '0'} {tokenB}
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Privacy</span>
-            <span className="font-semibold flex items-center gap-1">
+            <span className="text-gray-400">Privacy</span>
+            <span className="font-semibold flex items-center gap-1 text-cyan-400">
               <Droplets className="w-3 h-3" />
               Fully Encrypted
             </span>

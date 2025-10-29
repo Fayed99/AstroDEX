@@ -16,14 +16,14 @@ interface SettingsModalProps {
 export function SettingsModal({ open, onOpenChange, slippage, setSlippage, deadline, setDeadline }: SettingsModalProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent data-testid="modal-settings" className="sm:max-w-md">
+      <DialogContent data-testid="modal-settings" className="sm:max-w-md bg-slate-900 border-purple-500/20">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold">Transaction Settings</DialogTitle>
+          <DialogTitle className="text-2xl font-bold text-white">Transaction Settings</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6 pt-4">
           <div className="space-y-3">
-            <Label className="text-sm font-medium">Slippage Tolerance</Label>
+            <Label className="text-sm font-medium text-gray-200">Slippage Tolerance</Label>
             <div className="flex gap-2 flex-wrap">
               {['0.1', '0.5', '1.0'].map(val => (
                 <Button
@@ -43,27 +43,27 @@ export function SettingsModal({ open, onOpenChange, slippage, setSlippage, deadl
                 value={slippage}
                 onChange={(e) => setSlippage(e.target.value)}
                 placeholder="Custom"
-                className="w-24"
+                className="w-24 bg-slate-800 border-slate-700 text-white"
               />
             </div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-gray-400">
               Your transaction will revert if the price changes unfavorably by more than this percentage.
             </p>
           </div>
 
           <div className="space-y-3">
-            <Label className="text-sm font-medium">Transaction Deadline</Label>
+            <Label className="text-sm font-medium text-gray-200">Transaction Deadline</Label>
             <div className="flex items-center gap-3">
               <Input
                 data-testid="input-deadline"
                 type="number"
                 value={deadline}
                 onChange={(e) => setDeadline(e.target.value)}
-                className="flex-1"
+                className="flex-1 bg-slate-800 border-slate-700 text-white"
               />
-              <span className="text-sm text-muted-foreground">minutes</span>
+              <span className="text-sm text-gray-300">minutes</span>
             </div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-gray-400">
               Your transaction will revert if it is pending for more than this long.
             </p>
           </div>

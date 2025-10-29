@@ -205,19 +205,19 @@ export function SwapCard({ isConnected, onSwap, onOpenSettings, isProcessing }: 
           </div>
         </div>
 
-        <div className="bg-muted/50 rounded-lg p-3 space-y-1 text-sm">
+        <div className="bg-slate-800 border border-slate-700 rounded-lg p-3 space-y-1 text-sm">
           <div className="flex justify-between">
-            <span className="text-muted-foreground">
+            <span className="text-gray-400">
               {orderType === 'market' ? 'Current Rate' : 'Target Rate'}
             </span>
-            <span className="font-mono">
+            <span className="font-mono text-white">
               1 {fromToken} ≈ {orderType === 'limit' && limitPrice ? limitPrice : (parseFloat(toAmount || '0') / parseFloat(fromAmount || '1')).toFixed(4)} {toToken}
             </span>
           </div>
           {orderType === 'limit' && (
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Order Type</span>
-              <span className="font-semibold">Limit Order</span>
+              <span className="text-gray-400">Order Type</span>
+              <span className="font-semibold text-cyan-400">Limit Order</span>
             </div>
           )}
         </div>

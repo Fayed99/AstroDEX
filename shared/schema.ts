@@ -72,6 +72,45 @@ export type Transaction = typeof transactions.$inferSelect;
 export type InsertLimitOrder = z.infer<typeof insertLimitOrderSchema>;
 export type LimitOrder = typeof limitOrders.$inferSelect;
 
+// Network configurations
+export const NETWORKS = {
+  SEPOLIA: {
+    chainId: 11155111,
+    chainName: 'Sepolia Testnet',
+    rpcUrl: 'https://rpc.sepolia.org',
+    blockExplorer: 'https://sepolia.etherscan.io',
+    nativeCurrency: {
+      name: 'Sepolia ETH',
+      symbol: 'ETH',
+      decimals: 18,
+    },
+  },
+  BASE_SEPOLIA: {
+    chainId: 84532,
+    chainName: 'Base Sepolia',
+    rpcUrl: 'https://sepolia.base.org',
+    blockExplorer: 'https://sepolia.basescan.org',
+    nativeCurrency: {
+      name: 'Base Sepolia ETH',
+      symbol: 'ETH',
+      decimals: 18,
+    },
+  },
+  ZAMA: {
+    chainId: 9000,
+    chainName: 'Zama Devnet',
+    rpcUrl: 'https://devnet.zama.ai',
+    blockExplorer: 'https://explorer.devnet.zama.ai',
+    nativeCurrency: {
+      name: 'ZAMA',
+      symbol: 'ZAMA',
+      decimals: 18,
+    },
+  },
+} as const;
+
+export type NetworkType = keyof typeof NETWORKS;
+
 export const CONTRACTS = {
   DEX_ADDRESS: '0x0000000000000000000000000000000000000000',
   TOKENS: {
@@ -80,8 +119,9 @@ export const CONTRACTS = {
     DAI: '0x0000000000000000000000000000000000000002',
     WBTC: '0x0000000000000000000000000000000000000003',
   },
-  RPC_URL: 'https://devnet.zama.ai',
-  CHAIN_ID: 8009,
+  // Default to Sepolia
+  RPC_URL: NETWORKS.SEPOLIA.rpcUrl,
+  CHAIN_ID: NETWORKS.SEPOLIA.chainId,
 } as const;
 
 export const SUPPORTED_TOKENS = ['ETH', 'USDC', 'DAI', 'WBTC'] as const;

@@ -12,8 +12,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { FHEVMService } from '@/lib/fhevm';
-import { connectMetaMask, shortenAddress } from '@/lib/wallet';
-import { SUPPORTED_TOKENS } from '@shared/schema';
+import { connectMetaMask, shortenAddress, getSelectedNetwork } from '@/lib/wallet';
+import { SUPPORTED_TOKENS, type NetworkType } from '@shared/schema';
 import type { Transaction } from '@shared/schema';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { useMutation, useQuery } from '@tanstack/react-query';
@@ -36,6 +36,7 @@ export default function DexPage() {
   const [showCreatePool, setShowCreatePool] = useState(false);
   const [slippage, setSlippage] = useState('0.5');
   const [deadline, setDeadline] = useState('20');
+  const [selectedNetwork, setSelectedNetwork] = useState<NetworkType>(getSelectedNetwork());
   const [balances, setBalances] = useState<Record<string, Balance>>({
     ETH: { encrypted: true, value: null, decrypted: null },
     USDC: { encrypted: true, value: null, decrypted: null },
@@ -77,13 +78,14 @@ export default function DexPage() {
     queryFn: async () => {
       const response = await fetch(`/api/transactions?address=${fullAddress}`);
       if (!response.ok) throw new Error('Failed to fetch transactions');
-      return response.json();
+      const result = await response.json();
+      return result.data || [];
     },
   });
 
   const handleConnect = async () => {
     try {
-      const address = await connectMetaMask();
+      const address = await connectMetaMask(selectedNetwork);
       setIsConnected(true);
       setFullAddress(address);
       setWalletAddress(shortenAddress(address));
@@ -99,6 +101,18 @@ export default function DexPage() {
         variant: 'destructive',
       });
     }
+  };
+
+  const handleNetworkChange = (network: NetworkType) => {
+    if (isConnected) {
+      toast({
+        title: 'Disconnect First',
+        description: 'Please disconnect your wallet before changing networks',
+        variant: 'destructive',
+      });
+      return;
+    }
+    setSelectedNetwork(network);
   };
 
   const handleDisconnect = () => {
@@ -139,26 +153,53 @@ export default function DexPage() {
 
   const handleDecryptBalance = async (token: string) => {
     if (!balances[token]?.value) return;
-    
-    try {
-      const decrypted = await FHEVMService.decrypt(
-        balances[token].value!,
-        '0x0000000000000000000000000000000000000000'
-      );
-      
+
+    // Toggle: If already decrypted, hide it
+    if (balances[token].decrypted !== null) {
       setBalances(prev => ({
         ...prev,
-        [token]: { ...prev[token], decrypted: decrypted.toString() }
+        [token]: { ...prev[token], decrypted: null }
       }));
-      
       toast({
-        title: 'Balance Decrypted',
-        description: `${token} balance revealed`,
+        title: 'Balance Hidden',
+        description: `${token} balance is now encrypted`,
       });
-    } catch (error) {
+      return;
+    }
+
+    // Otherwise, decrypt it
+    try {
+      const response = await fetch(`/api/balance/decrypt`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          token,
+          encryptedBalance: balances[token].value,
+          walletAddress: fullAddress,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        setBalances(prev => ({
+          ...prev,
+          [token]: { ...prev[token], decrypted: result.decryptedValue.toString() }
+        }));
+
+        toast({
+          title: 'Balance Decrypted',
+          description: `${token} balance revealed`,
+        });
+      } else {
+        throw new Error(result.error || 'Failed to decrypt');
+      }
+    } catch (error: any) {
       toast({
         title: 'Decryption Failed',
-        description: 'Failed to decrypt balance',
+        description: error.message || 'Failed to decrypt balance',
         variant: 'destructive',
       });
     }
@@ -252,6 +293,8 @@ export default function DexPage() {
         onConnect={handleConnect}
         onDisconnect={handleDisconnect}
         isProcessing={false}
+        selectedNetwork={selectedNetwork}
+        onNetworkChange={handleNetworkChange}
       />
 
       <main className="container mx-auto px-4 py-8">
@@ -317,31 +360,31 @@ export default function DexPage() {
         {activeTab === 'history' && <TransactionHistory transactions={transactions} />}
 
         <div className="max-w-4xl mx-auto mt-12 grid gap-4 md:grid-cols-3">
-          <Card className="hover-elevate border-purple-500/20 bg-gradient-to-br from-purple-900/20 to-transparent">
+          <Card className="hover-elevate border-purple-500/20 bg-gradient-to-br from-purple-900/80 to-slate-900">
             <CardContent className="p-6 space-y-3">
               <Rocket className="w-8 h-8 text-purple-400" />
               <h3 className="font-bold text-lg bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">Cosmic Encryption</h3>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-gray-300">
                 All transactions and balances are encrypted end-to-end using Zama's FHE technology
               </p>
             </CardContent>
           </Card>
 
-          <Card className="hover-elevate border-blue-500/20 bg-gradient-to-br from-blue-900/20 to-transparent">
+          <Card className="hover-elevate border-blue-500/20 bg-gradient-to-br from-blue-900/80 to-slate-900">
             <CardContent className="p-6 space-y-3">
               <Sparkles className="w-8 h-8 text-blue-400" />
               <h3 className="font-bold text-lg bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">Stellar Trading</h3>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-gray-300">
                 Trade any token pair without revealing amounts or positions to anyone
               </p>
             </CardContent>
           </Card>
 
-          <Card className="hover-elevate border-cyan-500/20 bg-gradient-to-br from-cyan-900/20 to-transparent">
+          <Card className="hover-elevate border-cyan-500/20 bg-gradient-to-br from-cyan-900/80 to-slate-900">
             <CardContent className="p-6 space-y-3">
               <Shield className="w-8 h-8 text-cyan-400" />
               <h3 className="font-bold text-lg bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">Galactic Pools</h3>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-gray-300">
                 Provide liquidity with encrypted reserves, protecting your positions from MEV
               </p>
             </CardContent>

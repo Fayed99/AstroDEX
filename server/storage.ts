@@ -5,6 +5,7 @@ import { Pool as NeonPool, neonConfig } from "@neondatabase/serverless";
 import { eq, and, or, desc } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import ws from "ws";
+import { InMemoryStorage } from "./memoryStorage";
 
 neonConfig.webSocketConstructor = ws;
 
@@ -198,7 +199,40 @@ export class DbStorage implements IStorage {
   }
 }
 
-const dbStorage = new DbStorage();
-dbStorage.initialize().catch(console.error);
+// Initialize storage with fallback logic
+let storageInstance: IStorage;
 
-export const storage = dbStorage;
+async function initializeStorage() {
+  if (process.env.DATABASE_URL) {
+    console.log('📦 Using PostgreSQL database storage');
+    try {
+      const dbStorage = new DbStorage();
+      await dbStorage.initialize();
+      storageInstance = dbStorage;
+    } catch (err) {
+      console.error('❌ Database initialization failed:', err);
+      console.log('⚠️  Falling back to in-memory storage');
+      const memStorage = new InMemoryStorage();
+      await memStorage.initialize();
+      storageInstance = memStorage;
+    }
+  } else {
+    console.log('💾 Using in-memory storage (no DATABASE_URL configured)');
+    const memStorage = new InMemoryStorage();
+    await memStorage.initialize();
+    storageInstance = memStorage;
+  }
+}
+
+// Initialize immediately
+initializeStorage().catch(console.error);
+
+// Export a proxy that ensures storage is initialized
+export const storage = new Proxy({} as IStorage, {
+  get(target, prop) {
+    if (!storageInstance) {
+      throw new Error('Storage not initialized yet');
+    }
+    return (storageInstance as any)[prop];
+  }
+});

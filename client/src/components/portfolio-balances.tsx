@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { Eye, EyeOff, Lock, RefreshCw } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,6 +18,31 @@ interface PortfolioBalancesProps {
 }
 
 export function PortfolioBalances({ balances, onDecrypt, onRefresh, isProcessing }: PortfolioBalancesProps) {
+  const [prices, setPrices] = useState<Record<string, number>>({
+    ETH: 3900,
+    USDC: 1,
+    DAI: 1,
+    WBTC: 110000,
+  });
+
+  // Fetch live prices
+  useEffect(() => {
+    const fetchPrices = async () => {
+      try {
+        const response = await fetch('/api/prices');
+        const result = await response.json();
+        if (result.success) {
+          setPrices(result.prices);
+        }
+      } catch (error) {
+        console.error('Failed to fetch prices:', error);
+      }
+    };
+
+    fetchPrices();
+    const interval = setInterval(fetchPrices, 30000);
+    return () => clearInterval(interval);
+  }, []);
   return (
     <div className="max-w-5xl mx-auto space-y-4">
       <div className="flex justify-between items-center">
@@ -60,22 +86,22 @@ export function PortfolioBalances({ balances, onDecrypt, onRefresh, isProcessing
               <CardContent className="space-y-2">
                 {showDecrypted ? (
                   <>
-                    <p data-testid={`text-balance-${token.toLowerCase()}`} className="text-3xl font-bold font-mono tabular-nums">
+                    <p data-testid={`text-balance-${token.toLowerCase()}`} className="text-3xl font-bold font-mono tabular-nums text-white">
                       {parseFloat(balance.decrypted || '0').toFixed(4)}
                     </p>
-                    <p className="text-sm text-muted-foreground">
-                      ≈ ${(parseFloat(balance.decrypted || '0') * (token === 'ETH' ? 2000 : token === 'WBTC' ? 40000 : 1)).toFixed(2)}
+                    <p className="text-sm text-gray-400">
+                      ≈ ${(parseFloat(balance.decrypted || '0') * (prices[token] || 0)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </p>
                   </>
                 ) : (
                   <>
-                    <div className="flex items-center gap-2 text-muted-foreground">
+                    <div className="flex items-center gap-2 text-gray-400">
                       <Lock className="w-4 h-4" />
                       <p className="text-sm font-mono truncate">
                         {balance?.value || '0x...'}
                       </p>
                     </div>
-                    <p className="text-xs text-muted-foreground">Click eye to decrypt</p>
+                    <p className="text-xs text-gray-500">Click eye to decrypt</p>
                   </>
                 )}
               </CardContent>
