@@ -59,7 +59,7 @@ export function LiquidityCard({ isConnected, onAddLiquidity, onCreatePool, isPro
               value={amountA}
               onChange={(e) => setAmountA(e.target.value)}
               placeholder="0.0"
-              className="flex-1 text-2xl font-bold font-mono bg-transparent border-0 p-0 h-auto focus-visible:ring-0"
+              className="flex-1 text-2xl font-bold font-mono bg-transparent border-0 pl-4 pr-2 py-0 h-auto focus-visible:ring-0"
             />
             <Select value={tokenA} onValueChange={(value) => setTokenA(value as TokenSymbol)}>
               <SelectTrigger data-testid="select-liquidity-token-a" className="w-32">
@@ -89,7 +89,7 @@ export function LiquidityCard({ isConnected, onAddLiquidity, onCreatePool, isPro
               value={amountB}
               onChange={(e) => setAmountB(e.target.value)}
               placeholder="0.0"
-              className="flex-1 text-2xl font-bold font-mono bg-transparent border-0 p-0 h-auto focus-visible:ring-0"
+              className="flex-1 text-2xl font-bold font-mono bg-transparent border-0 pl-4 pr-2 py-0 h-auto focus-visible:ring-0"
             />
             <Select value={tokenB} onValueChange={(value) => setTokenB(value as TokenSymbol)}>
               <SelectTrigger data-testid="select-liquidity-token-b" className="w-32">

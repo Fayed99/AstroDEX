@@ -21,16 +21,51 @@ export function SwapCard({ isConnected, onSwap, onOpenSettings, isProcessing }: 
   const [toAmount, setToAmount] = useState('');
   const [orderType, setOrderType] = useState<'market' | 'limit'>('market');
   const [limitPrice, setLimitPrice] = useState('');
+  const [exchangeRate, setExchangeRate] = useState<number>(0);
+  const [isLoadingRate, setIsLoadingRate] = useState(false);
 
+  // Fetch live exchange rate
   useEffect(() => {
-    if (fromAmount && !isNaN(parseFloat(fromAmount))) {
-      const rate = fromToken === 'ETH' ? 2000 : fromToken === 'WBTC' ? 40000 : fromToken === 'USDC' ? 1 : 1;
-      const toRate = toToken === 'ETH' ? 2000 : toToken === 'WBTC' ? 40000 : toToken === 'USDC' ? 1 : 1;
-      setToAmount((parseFloat(fromAmount) * rate / toRate).toFixed(6));
+    const fetchExchangeRate = async () => {
+      if (fromToken === toToken) {
+        setExchangeRate(1);
+        return;
+      }
+
+      setIsLoadingRate(true);
+      try {
+        const response = await fetch(`/api/exchange-rate?tokenIn=${fromToken}&tokenOut=${toToken}`);
+        const data = await response.json();
+
+        if (data.success) {
+          setExchangeRate(data.rate);
+        }
+      } catch (error) {
+        console.error('Failed to fetch exchange rate:', error);
+        // Fallback to hardcoded rates if API fails
+        const fallbackRate = fromToken === 'ETH' ? 2000 : fromToken === 'WBTC' ? 40000 : fromToken === 'USDC' ? 1 : 1;
+        const fallbackToRate = toToken === 'ETH' ? 2000 : toToken === 'WBTC' ? 40000 : toToken === 'USDC' ? 1 : 1;
+        setExchangeRate(fallbackRate / fallbackToRate);
+      } finally {
+        setIsLoadingRate(false);
+      }
+    };
+
+    fetchExchangeRate();
+
+    // Update exchange rate every 30 seconds
+    const interval = setInterval(fetchExchangeRate, 30000);
+    return () => clearInterval(interval);
+  }, [fromToken, toToken]);
+
+  // Calculate output amount when input changes
+  useEffect(() => {
+    if (fromAmount && !isNaN(parseFloat(fromAmount)) && exchangeRate > 0) {
+      setToAmount((parseFloat(fromAmount) * exchangeRate).toFixed(6));
     } else {
       setToAmount('');
     }
-  }, [fromAmount, fromToken, toToken]);
+  }, [fromAmount, exchangeRate]);
 
   const handleSwap = async () => {
     if (!fromAmount || !toAmount) return;
@@ -98,7 +133,7 @@ export function SwapCard({ isConnected, onSwap, onOpenSettings, isProcessing }: 
               value={fromAmount}
               onChange={(e) => setFromAmount(e.target.value)}
               placeholder="0.0"
-              className="flex-1 text-2xl font-bold font-mono bg-transparent border-0 p-0 h-auto focus-visible:ring-0"
+              className="flex-1 text-2xl font-bold font-mono bg-transparent border-0 pl-4 pr-2 py-0 h-auto focus-visible:ring-0"
             />
             <Select value={fromToken} onValueChange={(value) => setFromToken(value as TokenSymbol)}>
               <SelectTrigger data-testid="select-from-token" className="w-32">
@@ -123,7 +158,7 @@ export function SwapCard({ isConnected, onSwap, onOpenSettings, isProcessing }: 
                 value={limitPrice}
                 onChange={(e) => setLimitPrice(e.target.value)}
                 placeholder="Enter price"
-                className="flex-1 text-2xl font-bold font-mono bg-transparent border-0 p-0 h-auto focus-visible:ring-0"
+                className="flex-1 text-2xl font-bold font-mono bg-transparent border-0 pl-4 pr-2 py-0 h-auto focus-visible:ring-0"
               />
               <div className="bg-secondary rounded-lg px-4 py-2 font-semibold flex items-center">
                 {toToken}/{fromToken}
@@ -155,7 +190,7 @@ export function SwapCard({ isConnected, onSwap, onOpenSettings, isProcessing }: 
               value={toAmount}
               readOnly
               placeholder="0.0"
-              className="flex-1 text-2xl font-bold font-mono bg-transparent border-0 p-0 h-auto focus-visible:ring-0"
+              className="flex-1 text-2xl font-bold font-mono bg-transparent border-0 pl-4 pr-2 py-0 h-auto focus-visible:ring-0"
             />
             <Select value={toToken} onValueChange={(value) => setToToken(value as TokenSymbol)}>
               <SelectTrigger data-testid="select-to-token" className="w-32">

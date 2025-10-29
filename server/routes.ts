@@ -2,8 +2,47 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { FHEVMService } from "./fhevm";
+import { priceOracle } from "./priceOracle";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Get live prices from oracle
+  app.get('/api/prices', async (req, res) => {
+    try {
+      const priceData = priceOracle.getAllPrices();
+      res.json({
+        success: true,
+        ...priceData,
+      });
+    } catch (error: any) {
+      console.error('Get prices error:', error);
+      res.status(500).json({ error: error.message || 'Failed to get prices' });
+    }
+  });
+
+  // Get exchange rate between two tokens
+  app.get('/api/exchange-rate', async (req, res) => {
+    try {
+      const { tokenIn, tokenOut } = req.query;
+      if (!tokenIn || !tokenOut) {
+        return res.status(400).json({ error: 'Missing tokenIn or tokenOut' });
+      }
+
+      const rate = priceOracle.getExchangeRate(tokenIn as string, tokenOut as string);
+      res.json({
+        success: true,
+        tokenIn,
+        tokenOut,
+        rate,
+        priceIn: priceOracle.getPrice(tokenIn as string),
+        priceOut: priceOracle.getPrice(tokenOut as string),
+      });
+    } catch (error: any) {
+      console.error('Get exchange rate error:', error);
+      res.status(500).json({ error: error.message || 'Failed to get exchange rate' });
+    }
+  });
+
+
   app.post('/api/swap', async (req, res) => {
     try {
       const { walletAddress, tokenIn, tokenOut, amountIn, minAmountOut, orderType, limitPrice } = req.body;
