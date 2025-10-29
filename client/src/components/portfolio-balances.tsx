@@ -20,7 +20,7 @@ export function PortfolioBalances({ balances, onDecrypt, onRefresh, isProcessing
   return (
     <div className="max-w-5xl mx-auto space-y-4">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Your Portfolio</h2>
+        <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-400 via-blue-400 to-cyan-400 bg-clip-text text-transparent">Your Portfolio</h2>
         <Button
           data-testid="button-refresh-balances"
           variant="outline"
@@ -39,9 +39,9 @@ export function PortfolioBalances({ balances, onDecrypt, onRefresh, isProcessing
           const showDecrypted = balance?.decrypted !== null;
 
           return (
-            <Card key={token} data-testid={`card-balance-${token.toLowerCase()}`} className="hover-elevate">
+            <Card key={token} data-testid={`card-balance-${token.toLowerCase()}`} className="hover-elevate astro-card cosmic-glow">
               <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-                <CardTitle className="text-sm font-bold uppercase">{token}</CardTitle>
+                <CardTitle className="text-sm font-bold uppercase text-cyan-400">{token}</CardTitle>
                 <Button
                   data-testid={`button-decrypt-${token.toLowerCase()}`}
                   variant="ghost"

@@ -28,8 +28,8 @@ export function TransactionHistory({ transactions }: TransactionHistoryProps) {
   return (
     <div className="max-w-6xl mx-auto space-y-4">
       <div className="flex flex-wrap justify-between items-center gap-4">
-        <h2 className="text-2xl font-bold flex items-center gap-2">
-          <Clock className="w-6 h-6" />
+        <h2 className="text-2xl font-bold flex items-center gap-2 bg-gradient-to-r from-purple-400 via-blue-400 to-cyan-400 bg-clip-text text-transparent">
+          <Clock className="w-6 h-6 text-purple-400" />
           Transaction History
         </h2>
         <div className="flex items-center gap-2">
@@ -51,7 +51,7 @@ export function TransactionHistory({ transactions }: TransactionHistoryProps) {
         </div>
       </div>
 
-      <Card data-testid="card-transactions">
+      <Card data-testid="card-transactions" className="astro-card cosmic-glow-cyan">
         <CardContent className="p-0">
           {filteredTransactions.length === 0 ? (
             <div className="py-12 text-center text-muted-foreground">

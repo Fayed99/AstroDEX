@@ -59,7 +59,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const amountInWithFee = amountInNum * (10000 - pool.fee) / 10000;
       const amountOut = (amountInWithFee * reserveOut) / (reserveIn + amountInWithFee);
 
-      if (amountOut < parseFloat(minAmountOut)) {
+      if (minAmountOut && amountOut < parseFloat(minAmountOut)) {
         return res.status(400).json({ error: 'Insufficient output amount' });
       }
 
@@ -72,14 +72,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await storage.updatePoolReserves(pool.id, newReserveOut.toString(), newReserveIn.toString());
       }
 
-      const encryptedBalanceIn = await FHEVMService.encrypt(amountInNum);
+      // Get current balances and adjust them (subtract input, add output)
+      const currentBalanceIn = await storage.getBalance(walletAddress, tokenIn);
+      const currentBalanceOut = await storage.getBalance(walletAddress, tokenOut);
+
+      const currentAmountIn = currentBalanceIn ? await FHEVMService.decrypt(currentBalanceIn.encryptedValue) : 0;
+      const currentAmountOut = currentBalanceOut ? await FHEVMService.decrypt(currentBalanceOut.encryptedValue) : 0;
+
+      const newBalanceIn = Math.max(0, currentAmountIn - amountInNum);
+      const newBalanceOut = currentAmountOut + amountOut;
+
+      const encryptedBalanceIn = await FHEVMService.encrypt(newBalanceIn);
       await storage.upsertBalance({
         walletAddress,
         token: tokenIn,
         encryptedValue: encryptedBalanceIn
       });
 
-      const encryptedBalanceOut = await FHEVMService.encrypt(amountOut);
+      const encryptedBalanceOut = await FHEVMService.encrypt(newBalanceOut);
       await storage.upsertBalance({
         walletAddress,
         token: tokenOut,
@@ -136,14 +146,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         totalLiquidity: totalLiquidity.toString()
       });
 
-      const encryptedBalanceA = await FHEVMService.encrypt(amountANum);
+      // Deduct tokens from user balance when creating pool
+      const currentBalanceA = await storage.getBalance(walletAddress, tokenA);
+      const currentBalanceB = await storage.getBalance(walletAddress, tokenB);
+
+      const currentAmountA = currentBalanceA ? await FHEVMService.decrypt(currentBalanceA.encryptedValue) : 0;
+      const currentAmountB = currentBalanceB ? await FHEVMService.decrypt(currentBalanceB.encryptedValue) : 0;
+
+      const newBalanceA = Math.max(0, currentAmountA - amountANum);
+      const newBalanceB = Math.max(0, currentAmountB - amountBNum);
+
+      const encryptedBalanceA = await FHEVMService.encrypt(newBalanceA);
       await storage.upsertBalance({
         walletAddress,
         token: tokenA,
         encryptedValue: encryptedBalanceA
       });
 
-      const encryptedBalanceB = await FHEVMService.encrypt(amountBNum);
+      const encryptedBalanceB = await FHEVMService.encrypt(newBalanceB);
       await storage.upsertBalance({
         walletAddress,
         token: tokenB,
@@ -202,14 +222,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await storage.updatePoolReserves(pool.id, newReserveB.toString(), newReserveA.toString());
       }
 
-      const encryptedBalanceA = await FHEVMService.encrypt(amountANum);
+      // Deduct tokens from user balance when adding liquidity
+      const currentBalanceA = await storage.getBalance(walletAddress, tokenA);
+      const currentBalanceB = await storage.getBalance(walletAddress, tokenB);
+
+      const currentAmountA = currentBalanceA ? await FHEVMService.decrypt(currentBalanceA.encryptedValue) : 0;
+      const currentAmountB = currentBalanceB ? await FHEVMService.decrypt(currentBalanceB.encryptedValue) : 0;
+
+      const newBalanceA = Math.max(0, currentAmountA - amountANum);
+      const newBalanceB = Math.max(0, currentAmountB - amountBNum);
+
+      const encryptedBalanceA = await FHEVMService.encrypt(newBalanceA);
       await storage.upsertBalance({
         walletAddress,
         token: tokenA,
         encryptedValue: encryptedBalanceA
       });
 
-      const encryptedBalanceB = await FHEVMService.encrypt(amountBNum);
+      const encryptedBalanceB = await FHEVMService.encrypt(newBalanceB);
       await storage.upsertBalance({
         walletAddress,
         token: tokenB,

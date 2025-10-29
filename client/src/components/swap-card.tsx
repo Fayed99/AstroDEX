@@ -48,9 +48,9 @@ export function SwapCard({ isConnected, onSwap, onOpenSettings, isProcessing }: 
   };
 
   return (
-    <Card data-testid="card-swap" className="max-w-md mx-auto">
+    <Card data-testid="card-swap" className="max-w-md mx-auto astro-card cosmic-glow">
       <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-4">
-        <CardTitle className="text-2xl font-bold">Swap Tokens</CardTitle>
+        <CardTitle className="text-2xl font-bold bg-gradient-to-r from-purple-400 via-blue-400 to-cyan-400 bg-clip-text text-transparent">Swap Tokens</CardTitle>
         <div className="flex items-center gap-2">
           <Button
             data-testid="button-settings"

@@ -32,10 +32,10 @@ export function LiquidityCard({ isConnected, onAddLiquidity, onCreatePool, isPro
     : '0';
 
   return (
-    <Card data-testid="card-liquidity" className="max-w-md mx-auto">
+    <Card data-testid="card-liquidity" className="max-w-md mx-auto astro-card cosmic-glow-blue">
       <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-4">
-        <CardTitle className="text-2xl font-bold flex items-center gap-2">
-          <Droplets className="w-6 h-6" />
+        <CardTitle className="text-2xl font-bold flex items-center gap-2 bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
+          <Droplets className="w-6 h-6 text-blue-400" />
           Add Liquidity
         </CardTitle>
         <Button

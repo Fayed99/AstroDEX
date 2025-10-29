@@ -22,22 +22,22 @@ const statsData = [
 export function AnalyticsDashboard() {
   return (
     <div className="max-w-7xl mx-auto space-y-6">
-      <h2 className="text-2xl font-bold">Analytics</h2>
+      <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-400 via-blue-400 to-cyan-400 bg-clip-text text-transparent">Analytics</h2>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {statsData.map((stat, index) => (
-          <Card key={index} data-testid={`card-stat-${index}`}>
+          <Card key={index} data-testid={`card-stat-${index}`} className="astro-card cosmic-glow">
             <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
+              <CardTitle className="text-sm font-medium text-cyan-300/70">
                 {stat.label}
               </CardTitle>
-              <stat.icon className="w-4 h-4 text-muted-foreground" />
+              <stat.icon className="w-4 h-4 text-purple-400" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold font-mono" data-testid={`text-stat-value-${index}`}>
+              <div className="text-2xl font-bold font-mono text-white" data-testid={`text-stat-value-${index}`}>
                 {stat.value}
               </div>
-              <p className={`text-xs font-medium ${stat.positive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+              <p className={`text-xs font-medium ${stat.positive ? 'text-green-400' : 'text-red-400'}`}>
                 {stat.change}
               </p>
             </CardContent>
@@ -45,39 +45,44 @@ export function AnalyticsDashboard() {
         ))}
       </div>
 
-      <Card data-testid="card-price-chart">
+      <Card data-testid="card-price-chart" className="astro-card cosmic-glow-blue">
         <CardHeader>
-          <CardTitle>ETH/USDC Price (24h)</CardTitle>
+          <CardTitle className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">ETH/USDC Price (24h)</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={priceData}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                <XAxis 
-                  dataKey="time" 
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(138, 43, 226, 0.2)" />
+                <XAxis
+                  dataKey="time"
                   className="text-xs"
-                  stroke="hsl(var(--muted-foreground))"
+                  stroke="rgba(255, 255, 255, 0.5)"
+                  tick={{ fill: 'rgba(255, 255, 255, 0.7)' }}
                 />
-                <YAxis 
+                <YAxis
                   className="text-xs"
-                  stroke="hsl(var(--muted-foreground))"
+                  stroke="rgba(255, 255, 255, 0.5)"
+                  tick={{ fill: 'rgba(255, 255, 255, 0.7)' }}
                   domain={['dataMin - 50', 'dataMax + 50']}
                 />
-                <Tooltip 
+                <Tooltip
                   contentStyle={{
-                    backgroundColor: 'hsl(var(--card))',
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '0.5rem',
+                    backgroundColor: 'rgba(30, 10, 60, 0.95)',
+                    border: '1px solid rgba(138, 43, 226, 0.5)',
+                    borderRadius: '0.75rem',
+                    color: 'white',
                   }}
-                  labelStyle={{ color: 'hsl(var(--card-foreground))' }}
+                  labelStyle={{ color: 'rgba(255, 255, 255, 0.9)' }}
+                  itemStyle={{ color: 'rgba(59, 130, 246, 1)' }}
                 />
-                <Line 
-                  type="monotone" 
-                  dataKey="price" 
-                  stroke="hsl(var(--primary))" 
-                  strokeWidth={2}
-                  dot={false}
+                <Line
+                  type="monotone"
+                  dataKey="price"
+                  stroke="rgba(59, 130, 246, 1)"
+                  strokeWidth={3}
+                  dot={{ fill: 'rgba(34, 211, 238, 1)', r: 4 }}
+                  activeDot={{ r: 6, fill: 'rgba(168, 85, 247, 1)' }}
                 />
               </LineChart>
             </ResponsiveContainer>
