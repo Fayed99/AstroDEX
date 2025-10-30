@@ -17,11 +17,22 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
+    target: 'esnext',
+  },
+  optimizeDeps: {
+    exclude: ['@zama-fhe/relayer-sdk'],
+    esbuildOptions: {
+      target: 'esnext',
+    },
   },
   server: {
     fs: {
       strict: true,
       deny: ["**/.*"],
+    },
+    headers: {
+      'Cross-Origin-Opener-Policy': 'same-origin',
+      'Cross-Origin-Embedder-Policy': 'require-corp',
     },
   },
 });
