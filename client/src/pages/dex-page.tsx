@@ -44,9 +44,7 @@ export default function DexPage() {
     WBTC: { encrypted: true, value: null, decrypted: null }
   });
 
-  useEffect(() => {
-    FHEVMService.init().catch(console.error);
-  }, []);
+  // FHEVM initialization will happen on wallet connection
 
   // Shooting stars effect
   useEffect(() => {
@@ -86,6 +84,20 @@ export default function DexPage() {
   const handleConnect = async () => {
     try {
       const address = await connectMetaMask(selectedNetwork);
+
+      // Initialize FHEVM with the provider and chainId
+      if (typeof window.ethereum !== 'undefined') {
+        const networkConfig = SUPPORTED_TOKENS; // Get network config
+        const chainId = selectedNetwork === 'ZAMA' ? 8009 : 11155111; // Zama devnet or Sepolia
+
+        try {
+          await FHEVMService.init(window.ethereum, chainId);
+          console.log('FHEVM initialized successfully');
+        } catch (fhevmError) {
+          console.warn('FHEVM initialization failed, encryption features may not work:', fhevmError);
+        }
+      }
+
       setIsConnected(true);
       setFullAddress(address);
       setWalletAddress(shortenAddress(address));

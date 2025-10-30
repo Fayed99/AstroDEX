@@ -131,41 +131,70 @@ npx hardhat verify --network zama <CONTRACT_ADDRESS>
 
 **File:** `client/src/lib/fhevm.ts`
 
+The FHEVM service is already configured to use Zama's new relayer SDK (`@zama-fhe/relayer-sdk`).
+
 ```typescript
-import { initFhevm, createInstance } from "fhevmjs";
+import { createInstance, initSDK, FhevmInstance, SepoliaConfig } from '@zama-fhe/relayer-sdk/web';
 
 export class FHEVMService {
-  private static instance: any;
+  private static instance: FHEVMService | null = null;
+  private fhevmClient: FhevmInstance | null = null;
 
-  static async init() {
-    await initFhevm();
-    this.instance = await createInstance({
-      chainId: 8009,
-      networkUrl: "https://devnet.zama.ai",
-      gatewayUrl: "https://gateway.zama.ai",
-    });
+  static async init(provider: any, chainId: number): Promise<FHEVMService> {
+    if (!this.instance) {
+      this.instance = new FHEVMService();
+    }
+
+    // Initialize the SDK
+    await initSDK();
+
+    // Configure for Zama devnet or use SepoliaConfig
+    const config = chainId === 8009 ? {
+      // Update these addresses with your deployed contract addresses
+      verifyingContractAddressDecryption: '0x...',
+      verifyingContractAddressInputVerification: '0x...',
+      kmsContractAddress: '0x...',
+      inputVerifierContractAddress: '0x...',
+      aclContractAddress: '0x...',
+      gatewayChainId: chainId,
+      chainId: chainId,
+      network: provider,
+      relayerUrl: 'https://gateway.devnet.zama.ai',
+    } : SepoliaConfig;
+
+    this.instance.fhevmClient = await createInstance(config);
+    return this.instance;
   }
 
-  static async encrypt(value: number, contractAddress: string, userAddress: string) {
-    const encrypted = this.instance.encrypt64(value);
+  async encrypt(value: number, contractAddress: string, userAddress: string) {
+    const encryptedInput = this.fhevmClient.createEncryptedInput(contractAddress, userAddress);
+    encryptedInput.add64(BigInt(value));
+    const encrypted = await encryptedInput.encrypt();
+
+    // Convert Uint8Array to hex strings
     return {
-      handle: encrypted.handles[0],
-      proof: encrypted.inputProof,
+      handle: '0x' + Array.from(encrypted.handles[0]).map(b => b.toString(16).padStart(2, '0')).join(''),
+      proof: '0x' + Array.from(encrypted.inputProof).map(b => b.toString(16).padStart(2, '0')).join(''),
     };
   }
 
-  static async decrypt(handle: string, contractAddress: string) {
-    const decrypted = await this.instance.decrypt(contractAddress, handle);
-    return Number(decrypted);
+  async decrypt(encryptedValue: string, contractAddress: string) {
+    const results = await this.fhevmClient.publicDecrypt([encryptedValue]);
+    return Number(Object.values(results)[0]);
   }
 }
 ```
 
-### 2. Install fhevmjs
+**Important:** Before using the FHEVM service on Zama devnet, you must:
+1. Deploy your contracts to Zama devnet
+2. Update the contract addresses in `client/src/lib/fhevm.ts` (lines 23-27)
+3. The system contracts (KMS, ACL, InputVerifier) addresses can be found in Zama's documentation
 
-```bash
-npm install fhevmjs
-```
+### 2. Relayer SDK Package
+
+The project uses `@zama-fhe/relayer-sdk` (already installed). The old `fhevmjs` package is deprecated.
+
+**Note:** The FHEVM client is automatically initialized when you connect your wallet in the DEX interface.
 
 ### 3. Add Contract ABIs
 
