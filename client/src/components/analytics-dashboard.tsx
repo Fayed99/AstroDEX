@@ -311,6 +311,7 @@ export function AnalyticsDashboard() {
                     }}
                     labelStyle={{ color: 'rgba(255, 255, 255, 0.9)' }}
                     itemStyle={{ color: 'rgba(59, 130, 246, 1)' }}
+                    formatter={(value: number) => `$${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                   />
                   <Line
                     type="monotone"
@@ -358,6 +359,7 @@ export function AnalyticsDashboard() {
                     }}
                     labelStyle={{ color: 'rgba(255, 255, 255, 0.9)' }}
                     itemStyle={{ color: 'rgba(251, 146, 60, 1)' }}
+                    formatter={(value: number) => `$${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                   />
                   <Line
                     type="monotone"
@@ -405,6 +407,7 @@ export function AnalyticsDashboard() {
                     }}
                     labelStyle={{ color: 'rgba(255, 255, 255, 0.9)' }}
                     itemStyle={{ color: 'rgba(52, 211, 153, 1)' }}
+                    formatter={(value: number) => `$${value.toFixed(4)}`}
                   />
                   <Line
                     type="monotone"
@@ -452,6 +455,7 @@ export function AnalyticsDashboard() {
                     }}
                     labelStyle={{ color: 'rgba(255, 255, 255, 0.9)' }}
                     itemStyle={{ color: 'rgba(251, 191, 36, 1)' }}
+                    formatter={(value: number) => `$${value.toFixed(4)}`}
                   />
                   <Line
                     type="monotone"
