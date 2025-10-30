@@ -133,47 +133,6 @@ function mint(address to, einput encryptedAmount, bytes calldata inputProof) ext
 
 ---
 
-## 🟢 What Works Well
-
-Despite the limitations above, the following are production-quality:
-
-✅ **Frontend Implementation**
-- Modern React 18 with TypeScript
-- Professional UI with Tailwind CSS + Shadcn/ui
-- Responsive design and smooth animations
-- Real-time price charts with Recharts
-- Proper error handling and loading states
-
-✅ **FHEVM Integration**
-- Zama relayer SDK (`@zama-fhe/relayer-sdk@0.2.0`) properly integrated
-- Dynamic lazy-loading prevents blocking app startup
-- Real encryption/decryption with automatic fallback
-- Production-safe error handling
-- Vite configuration optimized for WebAssembly
-
-✅ **Backend Architecture**
-- Express.js with TypeScript
-- RESTful API design
-- Database integration with Drizzle ORM
-- Session management and authentication ready
-- Price oracle service
-
-✅ **Documentation**
-- Comprehensive README.md
-- Detailed DEPLOYMENT.md guide
-- Design guidelines
-- Environment variable templates
-- Clear project structure
-
-✅ **Development Setup**
-- Proper TypeScript configuration
-- Hardhat development environment
-- Build and deployment scripts
-- Git configuration with `.gitignore`
-- Professional package.json metadata
-
----
-
 ## 🛠️ Path to Production
 
 To make this production-ready, the following steps would be needed:
@@ -205,44 +164,9 @@ To make this production-ready, the following steps would be needed:
 
 ---
 
-## 📚 References & Resources
+## ⚠️ Usage Limitations
 
-- [Zama Documentation](https://docs.zama.ai)
-- [FHEVM Documentation](https://docs.zama.ai/fhevm)
-- [Zama GitHub - FHEVM](https://github.com/zama-ai/fhevm)
-- [Hardhat Documentation](https://hardhat.org/docs)
-
----
-
-## 💡 Why This Project is Still Valuable
-
-Despite the limitations, this project demonstrates:
-
-1. **Strong Understanding** of FHEVM concepts (encrypted operations, gateway patterns)
-2. **Full-Stack Integration** of blockchain, backend, and modern frontend
-3. **Professional Development Practices** (TypeScript, documentation, clean code)
-4. **Production-Ready Architecture** (scalable, maintainable, testable)
-5. **UI/UX Excellence** (modern design, smooth interactions, data visualization)
-
-The limitations are primarily due to:
-- Timing of Zama's package restructuring (external factor)
-- Deliberate simplifications for educational purposes (documented)
-- Focus on demonstrating concepts over production deployment (intentional)
-
----
-
-## ✅ Recommended Use Cases
-
-This project is suitable for:
-
-- ✅ Learning FHEVM and confidential smart contracts
-- ✅ Demonstrating understanding of encrypted AMM concepts
-- ✅ Portfolio piece showing full-stack blockchain development
-- ✅ Reference implementation for FHEVM DEX architecture
-- ✅ Starting point for production implementation
-- ✅ Educational material for workshops/tutorials
-
-This project is **NOT suitable** for:
+**This project is NOT suitable for:**
 
 - ❌ Handling real value without fixes
 - ❌ Production deployment in current state
@@ -251,20 +175,4 @@ This project is **NOT suitable** for:
 
 ---
 
-## 🤝 Contributing
-
-If you'd like to contribute to making this production-ready:
-
-1. Update to latest Zama packages
-2. Implement gateway callbacks for decryption
-3. Add comprehensive tests
-4. Improve AMM math implementation
-5. Add access control and security features
-
-Pull requests welcome!
-
----
-
 **Last Updated:** 2025-10-30
-**Zama Package Status:** In transition to new namespace
-**Project Version:** 1.0.0
