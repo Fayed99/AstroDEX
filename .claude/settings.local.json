@@ -1,9 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(taskkill /F /PID 21324)"
-    ],
-    "deny": [],
-    "ask": []
-  }
-}
