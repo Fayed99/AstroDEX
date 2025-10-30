@@ -2,6 +2,8 @@
 
 A fully confidential decentralized exchange (DEX) built on Zama's FHEVM (Fully Homomorphic Encryption Virtual Machine) technology. Trade cryptocurrencies with complete privacy - all transaction amounts, balances, and trading activity remain encrypted end-to-end.
 
+> **⚠️ Project Status:** This is a proof-of-concept/educational implementation demonstrating FHEVM concepts. See [KNOWN_LIMITATIONS.md](./KNOWN_LIMITATIONS.md) for details on current limitations and production readiness.
+
 ## Features
 
 - **Fully Encrypted Trading**: All balances and transaction amounts are encrypted using homomorphic encryption
@@ -245,6 +247,9 @@ MIT
 
 ## Resources
 
+- [Known Limitations](./KNOWN_LIMITATIONS.md) - Current project status and limitations
+- [Deployment Guide](./DEPLOYMENT.md) - How to deploy contracts to Zama
+- [Design Guidelines](./design_guidelines.md) - UI/UX specifications
 - [Zama Documentation](https://docs.zama.ai)
 - [FHEVM Documentation](https://docs.zama.ai/fhevm)
 - [Hardhat Documentation](https://hardhat.org/docs)
