@@ -84,13 +84,27 @@ export function AnalyticsDashboard() {
             const currentPrice = result.prices[token];
             const history = [];
 
+            // Start with a base price that's different from current
+            let basePrice = currentPrice * (0.95 + Math.random() * 0.05); // Start 0-5% lower
+
             for (let i = 6; i >= 0; i--) {
               const time = new Date(now.getTime() - i * 4 * 60 * 60 * 1000);
-              const variancePercent = (Math.random() - 0.5) * 0.05; // 5% variance for demo
-              const variance = currentPrice * variancePercent;
+
+              // Add cumulative random walk to create more realistic price movement
+              const priceChange = (Math.random() - 0.5) * currentPrice * 0.03; // Up to 3% change per point
+              basePrice += priceChange;
+
+              // Ensure we trend toward the current price at the end
+              if (i === 0) {
+                basePrice = currentPrice;
+              } else {
+                // Gradually move toward current price
+                basePrice = basePrice * 0.9 + currentPrice * 0.1;
+              }
+
               history.push({
                 time: time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-                price: currentPrice + variance
+                price: Math.max(basePrice, currentPrice * 0.85) // Don't go too low
               });
             }
 
@@ -101,12 +115,28 @@ export function AnalyticsDashboard() {
           const stablecoins = ['USDC', 'DAI'];
           stablecoins.forEach(token => {
             const history = [];
+            let price = 0.998 + Math.random() * 0.004; // Start between 0.998 and 1.002
+
             for (let i = 6; i >= 0; i--) {
               const time = new Date(now.getTime() - i * 4 * 60 * 60 * 1000);
-              const variance = (Math.random() - 0.5) * 0.005; // Very small variance for stablecoins
+
+              // Small random walk for stablecoins
+              const priceChange = (Math.random() - 0.5) * 0.002; // Very small changes
+              price += priceChange;
+
+              // Keep price close to $1
+              price = Math.max(0.997, Math.min(1.003, price));
+
+              // Trend back toward $1
+              if (i === 0) {
+                price = 1.0;
+              } else {
+                price = price * 0.8 + 1.0 * 0.2;
+              }
+
               history.push({
                 time: time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-                price: 1 + variance
+                price: price
               });
             }
             histories[token] = history;
