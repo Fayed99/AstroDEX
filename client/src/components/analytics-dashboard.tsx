@@ -299,7 +299,8 @@ export function AnalyticsDashboard() {
                     className="text-xs"
                     stroke="rgba(255, 255, 255, 0.5)"
                     tick={{ fill: 'rgba(255, 255, 255, 0.7)' }}
-                    domain={['dataMin - 50', 'dataMax + 50']}
+                    domain={['auto', 'auto']}
+                    tickFormatter={(value) => `$${value.toLocaleString('en-US', { maximumFractionDigits: 0 })}`}
                   />
                   <Tooltip
                     contentStyle={{
@@ -345,7 +346,8 @@ export function AnalyticsDashboard() {
                     className="text-xs"
                     stroke="rgba(255, 255, 255, 0.5)"
                     tick={{ fill: 'rgba(255, 255, 255, 0.7)' }}
-                    domain={['dataMin - 500', 'dataMax + 500']}
+                    domain={['auto', 'auto']}
+                    tickFormatter={(value) => `$${value.toLocaleString('en-US', { maximumFractionDigits: 0 })}`}
                   />
                   <Tooltip
                     contentStyle={{
@@ -392,6 +394,7 @@ export function AnalyticsDashboard() {
                     stroke="rgba(255, 255, 255, 0.5)"
                     tick={{ fill: 'rgba(255, 255, 255, 0.7)' }}
                     domain={[0.995, 1.005]}
+                    tickFormatter={(value) => `$${value.toFixed(3)}`}
                   />
                   <Tooltip
                     contentStyle={{
@@ -438,6 +441,7 @@ export function AnalyticsDashboard() {
                     stroke="rgba(255, 255, 255, 0.5)"
                     tick={{ fill: 'rgba(255, 255, 255, 0.7)' }}
                     domain={[0.995, 1.005]}
+                    tickFormatter={(value) => `$${value.toFixed(3)}`}
                   />
                   <Tooltip
                     contentStyle={{
