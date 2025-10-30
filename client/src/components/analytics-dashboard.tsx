@@ -149,10 +149,48 @@ export function AnalyticsDashboard() {
 
           console.log('Generated price histories:', histories);
           setPriceHistories(histories);
+        } else {
+          console.warn('Price API returned no data, using fallback prices');
+          // Use fallback prices if API fails
+          generateFallbackHistories();
         }
       } catch (error) {
         console.error('Failed to fetch price history:', error);
+        // Use fallback prices on error
+        generateFallbackHistories();
       }
+    };
+
+    const generateFallbackHistories = () => {
+      const now = new Date();
+      const histories: TokenPriceHistories = {};
+      const fallbackPrices = { ETH: 3500, WBTC: 95000, USDC: 1, DAI: 1 };
+
+      Object.entries(fallbackPrices).forEach(([token, currentPrice]) => {
+        const history = [];
+        let basePrice = currentPrice * (0.95 + Math.random() * 0.05);
+
+        for (let i = 6; i >= 0; i--) {
+          const time = new Date(now.getTime() - i * 4 * 60 * 60 * 1000);
+          const priceChange = (Math.random() - 0.5) * currentPrice * 0.03;
+          basePrice += priceChange;
+
+          if (i === 0) {
+            basePrice = currentPrice;
+          } else {
+            basePrice = basePrice * 0.9 + currentPrice * 0.1;
+          }
+
+          history.push({
+            time: time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+            price: Math.max(basePrice, currentPrice * 0.85)
+          });
+        }
+        histories[token] = history;
+      });
+
+      console.log('Using fallback price histories:', histories);
+      setPriceHistories(histories);
     };
 
     fetchPriceHistory();
