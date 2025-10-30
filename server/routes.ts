@@ -452,7 +452,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Calculate 24h volume (sum of all swap transactions)
       const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
       const recentTransactions = transactions.filter(tx =>
-        tx.type === 'swap' && new Date(tx.createdAt) > oneDayAgo
+        tx.type === 'swap' && new Date(tx.timestamp) > oneDayAgo
       );
 
       let totalVolume24h = 0;

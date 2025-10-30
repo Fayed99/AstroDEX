@@ -36,7 +36,12 @@ export class InMemoryStorage implements IStorage {
     const id = randomUUID();
     const newPool: Pool = {
       id,
-      ...pool,
+      tokenA: pool.tokenA,
+      tokenB: pool.tokenB,
+      reserveA: pool.reserveA || "0",
+      reserveB: pool.reserveB || "0",
+      fee: pool.fee || 30,
+      totalLiquidity: pool.totalLiquidity || "0",
       createdAt: new Date(),
     };
     this.pools.set(id, newPool);
@@ -45,15 +50,11 @@ export class InMemoryStorage implements IStorage {
 
   async getPool(tokenA: string, tokenB: string): Promise<Pool | undefined> {
     // Check both directions since pools can be queried either way
-    for (const pool of this.pools.values()) {
-      if (
-        (pool.tokenA === tokenA && pool.tokenB === tokenB) ||
-        (pool.tokenA === tokenB && pool.tokenB === tokenA)
-      ) {
-        return pool;
-      }
-    }
-    return undefined;
+    const pools = Array.from(this.pools.values());
+    return pools.find(pool =>
+      (pool.tokenA === tokenA && pool.tokenB === tokenB) ||
+      (pool.tokenA === tokenB && pool.tokenB === tokenA)
+    );
   }
 
   async getAllPools(): Promise<Pool[]> {
@@ -103,8 +104,15 @@ export class InMemoryStorage implements IStorage {
   async createTransaction(transaction: InsertTransaction): Promise<Transaction> {
     const newTransaction: Transaction = {
       id: randomUUID(),
-      ...transaction,
+      type: transaction.type,
+      walletAddress: transaction.walletAddress,
+      fromToken: transaction.fromToken,
+      toToken: transaction.toToken,
+      amount: transaction.amount,
+      status: transaction.status || "pending",
+      txHash: transaction.txHash || null,
       timestamp: new Date(),
+      encrypted: transaction.encrypted !== undefined ? transaction.encrypted : true,
     };
     this.transactions.push(newTransaction);
     return newTransaction;
@@ -140,7 +148,12 @@ export class InMemoryStorage implements IStorage {
   async createLimitOrder(order: InsertLimitOrder): Promise<LimitOrder> {
     const newOrder: LimitOrder = {
       id: randomUUID(),
-      ...order,
+      walletAddress: order.walletAddress,
+      tokenIn: order.tokenIn,
+      tokenOut: order.tokenOut,
+      amountIn: order.amountIn,
+      limitPrice: order.limitPrice,
+      status: order.status || "active",
       createdAt: new Date(),
       executedAt: null,
     };
