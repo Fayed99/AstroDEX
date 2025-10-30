@@ -1,4 +1,4 @@
-# Zama DEX - Confidential Decentralized Exchange
+# AstroDEX - Confidential Decentralized Exchange
 
 A fully confidential decentralized exchange (DEX) built on Zama's FHEVM (Fully Homomorphic Encryption Virtual Machine) technology. Trade cryptocurrencies with complete privacy - all transaction amounts, balances, and trading activity remain encrypted end-to-end.
 
@@ -39,7 +39,7 @@ A fully confidential decentralized exchange (DEX) built on Zama's FHEVM (Fully H
 ## Project Structure
 
 ```
-ZamaDappBuilder/
+AstroDEX/
 ├── client/                # Frontend React application
 │   ├── public/           # Static assets
 │   └── src/
@@ -72,8 +72,8 @@ ZamaDappBuilder/
 
 1. **Clone the repository**
    ```bash
-   git clone <repository-url>
-   cd ZamaDappBuilder
+   git clone https://github.com/Fayed99/AstroDEX.git
+   cd AstroDEX
    ```
 
 2. **Install dependencies**
