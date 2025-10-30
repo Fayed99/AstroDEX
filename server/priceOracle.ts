@@ -14,10 +14,10 @@ interface PriceResponse {
 
 class PriceOracleService {
   private prices: TokenPrices = {
-    ETH: 0,
+    ETH: 3500,  // Reasonable fallback price
     USDC: 1,
     DAI: 1,
-    WBTC: 0,
+    WBTC: 95000, // Reasonable fallback price
   };
   private lastUpdated: Date = new Date();
   private updateInterval: NodeJS.Timeout | null = null;

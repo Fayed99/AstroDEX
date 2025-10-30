@@ -73,7 +73,8 @@ export function AnalyticsDashboard() {
       try {
         const response = await fetch('/api/prices');
         const result = await response.json();
-        if (result.success) {
+        console.log('Price API response:', result);
+        if (result.success && result.prices) {
           const now = new Date();
           const histories: TokenPriceHistories = {};
 
@@ -82,6 +83,10 @@ export function AnalyticsDashboard() {
 
           volatileTokens.forEach(token => {
             const currentPrice = result.prices[token];
+            if (!currentPrice || currentPrice === 0) {
+              console.warn(`Invalid price for ${token}:`, currentPrice);
+              return;
+            }
             const history = [];
 
             // Start with a base price that's different from current
@@ -142,6 +147,7 @@ export function AnalyticsDashboard() {
             histories[token] = history;
           });
 
+          console.log('Generated price histories:', histories);
           setPriceHistories(histories);
         }
       } catch (error) {
