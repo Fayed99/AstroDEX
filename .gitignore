@@ -18,3 +18,6 @@ deployed-addresses.json
 # IDEs
 .vscode
 .idea
+
+# AI Tools
+.claude
