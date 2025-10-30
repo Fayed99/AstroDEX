@@ -79,16 +79,23 @@ export function AnalyticsDashboard() {
           const histories: TokenPriceHistories = {};
 
           // Create price histories for volatile tokens (ETH, WBTC)
-          const volatileTokens = ['ETH', 'WBTC'];
+          const volatileTokens = [
+            { token: 'ETH', fallbackPrice: 3500 },
+            { token: 'WBTC', fallbackPrice: 95000 }
+          ];
 
-          volatileTokens.forEach(token => {
-            const currentPrice = result.prices[token];
+          volatileTokens.forEach(({ token, fallbackPrice }) => {
+            // Use API price if available, otherwise use fallback
+            const currentPrice = result.prices[token] && result.prices[token] > 0
+              ? result.prices[token]
+              : fallbackPrice;
+
             if (!currentPrice || currentPrice === 0) {
-              console.warn(`Invalid price for ${token}:`, currentPrice);
+              console.warn(`Skipping ${token} - no valid price available`);
               return;
             }
-            const history = [];
 
+            const history = [];
             // Start with a base price that's different from current
             let basePrice = currentPrice * (0.95 + Math.random() * 0.05); // Start 0-5% lower
 
