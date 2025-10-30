@@ -26,7 +26,7 @@ export function TransactionHistory({ transactions }: TransactionHistoryProps) {
   };
 
   return (
-    <div className="max-w-2xl mx-auto space-y-4">
+    <div className="max-w-4xl mx-auto space-y-4">
       <div className="flex flex-wrap justify-between items-center gap-4">
         <h2 className="text-2xl font-bold flex items-center gap-2 bg-gradient-to-r from-purple-400 via-blue-400 to-cyan-400 bg-clip-text text-transparent">
           <Clock className="w-6 h-6 text-purple-400" />
