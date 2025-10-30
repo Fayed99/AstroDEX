@@ -1,4 +1,4 @@
-# Zama DEX Design Guidelines
+# AstroDEX Design Guidelines
 
 ## Design Approach
 **Selected Framework**: Material Design with DeFi-specific patterns

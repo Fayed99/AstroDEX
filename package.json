@@ -1,16 +1,25 @@
 {
-  "name": "zama-astrodex",
+  "name": "astrodex",
   "version": "1.0.0",
   "description": "Fully confidential DEX built on Zama's FHEVM with encrypted swaps, liquidity pools, and privacy-preserving trading",
+  "author": "Fayed99",
+  "homepage": "https://github.com/Fayed99/AstroDEX#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Fayed99/AstroDEX.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Fayed99/AstroDEX/issues"
+  },
   "keywords": [
-    "zama",
     "fhevm",
     "dex",
     "confidential",
     "encrypted",
     "homomorphic-encryption",
     "defi",
-    "blockchain"
+    "blockchain",
+    "privacy"
   ],
   "type": "module",
   "license": "MIT",
