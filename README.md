@@ -105,9 +105,18 @@ AstroDEX/
 ## Development
 
 ### Run the development server
+
+**Option 1: Direct (works on all platforms)**
+```bash
+npx tsx server/index.ts
+```
+
+**Option 2: Using npm script (Mac/Linux)**
 ```bash
 npm run dev
 ```
+
+**Note for Windows users:** The `npm run dev` script uses Unix-style environment variables. Use Option 1, or install `cross-env` to fix the script.
 
 The application will be available at `http://localhost:5000`
 
