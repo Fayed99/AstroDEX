@@ -176,24 +176,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const amountBNum = parseFloat(amountB);
       const totalLiquidity = Math.sqrt(amountANum * amountBNum);
 
-      const pool = await storage.createPool({
-        tokenA,
-        tokenB,
-        reserveA: amountA.toString(),
-        reserveB: amountB.toString(),
-        fee: parseInt(fee) || 30,
-        totalLiquidity: totalLiquidity.toString()
-      });
-
-      // Deduct tokens from user balance when creating pool
+      // Check user balances first
       const currentBalanceA = await storage.getBalance(walletAddress, tokenA);
       const currentBalanceB = await storage.getBalance(walletAddress, tokenB);
 
       const currentAmountA = currentBalanceA ? await FHEVMService.decrypt(currentBalanceA.encryptedValue) : 0;
       const currentAmountB = currentBalanceB ? await FHEVMService.decrypt(currentBalanceB.encryptedValue) : 0;
 
-      const newBalanceA = Math.max(0, currentAmountA - amountANum);
-      const newBalanceB = Math.max(0, currentAmountB - amountBNum);
+      if (currentAmountA < amountANum) {
+        return res.status(400).json({
+          error: `Insufficient ${tokenA} balance. You have ${currentAmountA} but need ${amountANum}`
+        });
+      }
+
+      if (currentAmountB < amountBNum) {
+        return res.status(400).json({
+          error: `Insufficient ${tokenB} balance. You have ${currentAmountB} but need ${amountBNum}`
+        });
+      }
+
+      const pool = await storage.createPool({
+        tokenA,
+        tokenB,
+        reserveA: amountA.toString(),
+        reserveB: amountB.toString(),
+        fee: Math.round(parseFloat(fee) * 100) || 30, // Convert percentage to basis points (0.3% -> 30)
+        totalLiquidity: totalLiquidity.toString()
+      });
+
+      // Deduct tokens from user balance after creating pool
+      const newBalanceA = currentAmountA - amountANum;
+      const newBalanceB = currentAmountB - amountBNum;
 
       const encryptedBalanceA = await FHEVMService.encrypt(newBalanceA);
       await storage.upsertBalance({
@@ -248,7 +261,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const amountANum = parseFloat(amountA);
       const amountBNum = parseFloat(amountB);
-      
+
+      // Check user balances first
+      const currentBalanceA = await storage.getBalance(walletAddress, tokenA);
+      const currentBalanceB = await storage.getBalance(walletAddress, tokenB);
+
+      const currentAmountA = currentBalanceA ? await FHEVMService.decrypt(currentBalanceA.encryptedValue) : 0;
+      const currentAmountB = currentBalanceB ? await FHEVMService.decrypt(currentBalanceB.encryptedValue) : 0;
+
+      if (currentAmountA < amountANum) {
+        return res.status(400).json({
+          error: `Insufficient ${tokenA} balance. You have ${currentAmountA} but need ${amountANum}`
+        });
+      }
+
+      if (currentAmountB < amountBNum) {
+        return res.status(400).json({
+          error: `Insufficient ${tokenB} balance. You have ${currentAmountB} but need ${amountBNum}`
+        });
+      }
+
       const currentReserveA = parseFloat(pool.tokenA === tokenA ? pool.reserveA : pool.reserveB);
       const currentReserveB = parseFloat(pool.tokenA === tokenA ? pool.reserveB : pool.reserveA);
 
@@ -261,15 +293,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await storage.updatePoolReserves(pool.id, newReserveB.toString(), newReserveA.toString());
       }
 
-      // Deduct tokens from user balance when adding liquidity
-      const currentBalanceA = await storage.getBalance(walletAddress, tokenA);
-      const currentBalanceB = await storage.getBalance(walletAddress, tokenB);
-
-      const currentAmountA = currentBalanceA ? await FHEVMService.decrypt(currentBalanceA.encryptedValue) : 0;
-      const currentAmountB = currentBalanceB ? await FHEVMService.decrypt(currentBalanceB.encryptedValue) : 0;
-
-      const newBalanceA = Math.max(0, currentAmountA - amountANum);
-      const newBalanceB = Math.max(0, currentAmountB - amountBNum);
+      // Deduct tokens from user balance after adding liquidity
+      const newBalanceA = currentAmountA - amountANum;
+      const newBalanceB = currentAmountB - amountBNum;
 
       const encryptedBalanceA = await FHEVMService.encrypt(newBalanceA);
       await storage.upsertBalance({
