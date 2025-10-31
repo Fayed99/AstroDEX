@@ -1,15 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import "fhevm/lib/TFHE.sol";
+import "@fhevm/solidity/lib/FHE.sol";
+import { SepoliaConfig } from "@fhevm/solidity/config/ZamaConfig.sol";
 
 /**
  * @title EncryptedERC20
- * @notice ERC20-like token with encrypted balances using Zama's TFHE
+ * @notice ERC20-like token with encrypted balances using Zama's FHE
  * @dev All balances and transfers are fully encrypted
  */
-contract EncryptedERC20 {
-    using TFHE for euint64;
+contract EncryptedERC20 is SepoliaConfig {
+    using FHE for euint64;
 
     string public name;
     string public symbol;
@@ -34,11 +35,11 @@ contract EncryptedERC20 {
         symbol = _symbol;
 
         // Mint initial supply to deployer
-        encryptedTotalSupply = TFHE.asEuint64(initialSupply);
-        encryptedBalances[msg.sender] = TFHE.asEuint64(initialSupply);
+        encryptedTotalSupply = FHE.asEuint64(initialSupply);
+        encryptedBalances[msg.sender] = FHE.asEuint64(initialSupply);
 
         // Allow deployer to view their balance
-        TFHE.allow(encryptedBalances[msg.sender], msg.sender);
+        FHE.allow(encryptedBalances[msg.sender], msg.sender);
 
         emit Mint(msg.sender);
     }
@@ -60,10 +61,10 @@ contract EncryptedERC20 {
      */
     function transfer(
         address to,
-        einput encryptedAmount,
+        externalEuint64 encryptedAmount,
         bytes calldata inputProof
     ) public returns (bool) {
-        euint64 amount = TFHE.asEuint64(encryptedAmount, inputProof);
+        euint64 amount = FHE.fromExternal(encryptedAmount, inputProof);
         _transfer(msg.sender, to, amount);
         return true;
     }
@@ -76,15 +77,15 @@ contract EncryptedERC20 {
      */
     function approve(
         address spender,
-        einput encryptedAmount,
+        externalEuint64 encryptedAmount,
         bytes calldata inputProof
     ) public returns (bool) {
-        euint64 amount = TFHE.asEuint64(encryptedAmount, inputProof);
+        euint64 amount = FHE.fromExternal(encryptedAmount, inputProof);
 
         encryptedAllowances[msg.sender][spender] = amount;
 
         // Allow spender to see allowance
-        TFHE.allow(amount, spender);
+        FHE.allow(amount, spender);
 
         emit Approval(msg.sender, spender);
         return true;
@@ -100,20 +101,25 @@ contract EncryptedERC20 {
     function transferFrom(
         address from,
         address to,
-        einput encryptedAmount,
+        externalEuint64 encryptedAmount,
         bytes calldata inputProof
     ) public returns (bool) {
-        euint64 amount = TFHE.asEuint64(encryptedAmount, inputProof);
+        euint64 amount = FHE.fromExternal(encryptedAmount, inputProof);
         euint64 currentAllowance = encryptedAllowances[from][msg.sender];
 
-        // Check allowance is sufficient
-        ebool hasEnoughAllowance = TFHE.le(amount, currentAllowance);
-        require(TFHE.decrypt(hasEnoughAllowance), "Insufficient allowance");
+        // Check if allowance is sufficient and sender has balance
+        ebool hasEnoughAllowance = FHE.le(amount, currentAllowance);
+        euint64 balanceFrom = encryptedBalances[from];
+        ebool hasEnoughBalance = FHE.le(amount, balanceFrom);
+
+        // Both conditions must be true
+        ebool canTransfer = FHE.and(hasEnoughAllowance, hasEnoughBalance);
+        euint64 transferValue = FHE.select(canTransfer, amount, FHE.asEuint64(0));
 
         // Decrease allowance
-        encryptedAllowances[from][msg.sender] = TFHE.sub(currentAllowance, amount);
+        encryptedAllowances[from][msg.sender] = FHE.sub(currentAllowance, transferValue);
 
-        _transfer(from, to, amount);
+        _transfer(from, to, transferValue);
         return true;
     }
 
@@ -138,17 +144,19 @@ contract EncryptedERC20 {
 
         euint64 balanceFrom = encryptedBalances[from];
 
-        // Check sender has enough balance
-        ebool hasEnoughBalance = TFHE.le(amount, balanceFrom);
-        require(TFHE.decrypt(hasEnoughBalance), "Insufficient balance");
+        // Check if sender has enough balance (encrypted comparison)
+        ebool hasEnoughBalance = FHE.le(amount, balanceFrom);
+
+        // Use FHE.select to transfer amount if sufficient, otherwise 0
+        euint64 transferValue = FHE.select(hasEnoughBalance, amount, FHE.asEuint64(0));
 
         // Update balances
-        encryptedBalances[from] = TFHE.sub(balanceFrom, amount);
-        encryptedBalances[to] = TFHE.add(encryptedBalances[to], amount);
+        encryptedBalances[from] = FHE.sub(balanceFrom, transferValue);
+        encryptedBalances[to] = FHE.add(encryptedBalances[to], transferValue);
 
         // Allow both parties to view their new balances
-        TFHE.allow(encryptedBalances[from], from);
-        TFHE.allow(encryptedBalances[to], to);
+        FHE.allow(encryptedBalances[from], from);
+        FHE.allow(encryptedBalances[to], to);
 
         emit Transfer(from, to);
     }
@@ -161,15 +169,15 @@ contract EncryptedERC20 {
      */
     function mint(
         address to,
-        einput encryptedAmount,
+        externalEuint64 encryptedAmount,
         bytes calldata inputProof
     ) external {
-        euint64 amount = TFHE.asEuint64(encryptedAmount, inputProof);
+        euint64 amount = FHE.fromExternal(encryptedAmount, inputProof);
 
-        encryptedTotalSupply = TFHE.add(encryptedTotalSupply, amount);
-        encryptedBalances[to] = TFHE.add(encryptedBalances[to], amount);
+        encryptedTotalSupply = FHE.add(encryptedTotalSupply, amount);
+        encryptedBalances[to] = FHE.add(encryptedBalances[to], amount);
 
-        TFHE.allow(encryptedBalances[to], to);
+        FHE.allow(encryptedBalances[to], to);
 
         emit Mint(to);
     }

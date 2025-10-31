@@ -13,8 +13,8 @@ interface TransactionHistoryProps {
 export function TransactionHistory({ transactions }: TransactionHistoryProps) {
   const [filterType, setFilterType] = useState<string>('all');
 
-  const filteredTransactions = filterType === 'all' 
-    ? transactions 
+  const filteredTransactions = filterType === 'all'
+    ? transactions
     : transactions.filter(tx => tx.type === filterType);
 
   const getTypeIcon = (type: string) => {
@@ -23,6 +23,44 @@ export function TransactionHistory({ transactions }: TransactionHistoryProps) {
 
   const getStatusColor = (status: string) => {
     return status === 'completed' ? 'default' : status === 'pending' ? 'secondary' : 'destructive';
+  };
+
+  const handleExportCSV = () => {
+    if (filteredTransactions.length === 0) {
+      return;
+    }
+
+    // Create CSV header
+    const headers = ['Date', 'Type', 'From Token', 'To Token', 'Amount', 'Status', 'Transaction Hash'];
+
+    // Create CSV rows
+    const rows = filteredTransactions.map(tx => [
+      new Date(tx.timestamp).toISOString(),
+      tx.type,
+      tx.fromToken,
+      tx.toToken,
+      tx.amount,
+      tx.status,
+      tx.txHash || 'N/A'
+    ]);
+
+    // Combine headers and rows
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+    ].join('\n');
+
+    // Create blob and download
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+
+    link.setAttribute('href', url);
+    link.setAttribute('download', `astrodex-transactions-${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   return (
@@ -44,9 +82,15 @@ export function TransactionHistory({ transactions }: TransactionHistoryProps) {
               <SelectItem value="liquidity">Liquidity Only</SelectItem>
             </SelectContent>
           </Select>
-          <Button data-testid="button-export" variant="outline" size="sm">
+          <Button
+            data-testid="button-export"
+            variant="outline"
+            size="sm"
+            onClick={handleExportCSV}
+            disabled={filteredTransactions.length === 0}
+          >
             <Download className="w-4 h-4 mr-2" />
-            Export
+            Export CSV
           </Button>
         </div>
       </div>

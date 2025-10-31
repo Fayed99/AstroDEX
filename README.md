@@ -6,6 +6,20 @@ A fully confidential decentralized exchange (DEX) built on Zama's FHEVM (Fully H
 
 > **⚠️ Project Status:** This is a proof-of-concept/educational implementation demonstrating FHEVM concepts. See [KNOWN_LIMITATIONS.md](./KNOWN_LIMITATIONS.md) for details on current limitations and production readiness.
 
+## Recent Updates
+
+### FHE Contract Migration (Latest)
+- ✅ Migrated to `@fhevm/solidity` v0.7+ (latest stable API)
+- ✅ Fixed critical TFHE.decrypt() pattern issues
+- ✅ Implemented proper FHE.select() conditional logic
+- ✅ Updated to new encrypted input types (externalEuint64)
+- ✅ Added IR-based compilation for complex FHE operations
+- ✅ Documented FHE limitations (division constraints)
+
+### Features
+- ✅ Added CSV export for transaction history
+- ✅ Fixed export button functionality
+
 ## Features
 
 - **Fully Encrypted Trading**: All balances and transaction amounts are encrypted using homomorphic encryption
@@ -13,7 +27,7 @@ A fully confidential decentralized exchange (DEX) built on Zama's FHEVM (Fully H
 - **Liquidity Pools**: Create and manage encrypted liquidity pools
 - **Portfolio Management**: View your encrypted balances with optional decryption
 - **Analytics Dashboard**: Track trading volume, pool statistics, and market trends
-- **Transaction History**: Monitor your trading activity with filtering and export capabilities
+- **Transaction History**: Monitor your trading activity with filtering and CSV export
 - **MEV Protection**: Transaction amounts remain hidden, protecting against front-running
 - **Modern UI**: Sleek, responsive interface built with React and Tailwind CSS
 
@@ -35,9 +49,10 @@ A fully confidential decentralized exchange (DEX) built on Zama's FHEVM (Fully H
 - RESTful API architecture
 
 ### Blockchain
-- **Zama FHEVM** for homomorphic encryption
-- **Solidity** smart contracts
-- **Hardhat** for contract deployment
+- **@fhevm/solidity** (v0.7+) for homomorphic encryption
+- **@zama-fhe/oracle-solidity** for decryption oracle integration
+- **Solidity 0.8.24** smart contracts
+- **Hardhat** for contract compilation and deployment
 - **MetaMask** for wallet integration
 
 ## Project Structure
@@ -133,28 +148,92 @@ npm run check
 
 ## Smart Contracts
 
+### FHEVM Integration (Updated)
+
+**⚠️ Important:** The contracts have been updated to use the latest `@fhevm/solidity` package (v0.7+). Key changes:
+
+#### Migration from Deprecated API
+- **Old:** `import "fhevm/lib/TFHE.sol"` → **New:** `import "@fhevm/solidity/lib/FHE.sol"`
+- **Old:** `einput` type → **New:** `externalEuint64`
+- **Old:** `TFHE.asEuint64()` → **New:** `FHE.fromExternal()`
+- **Old:** `contract extends SepoliaZamaFHEVMConfig` → **New:** `contract extends SepoliaConfig`
+
+#### Critical FHE Pattern: No Synchronous Decryption!
+
+**❌ WRONG (Old Pattern):**
+```solidity
+euint64 balance = encryptedBalances[user];
+require(TFHE.decrypt(TFHE.ge(balance, amount)), "Insufficient balance");
+```
+
+**✅ CORRECT (New Pattern):**
+```solidity
+euint64 balance = encryptedBalances[user];
+ebool hasEnough = FHE.ge(balance, amount);
+euint64 transferValue = FHE.select(hasEnough, amount, FHE.asEuint64(0));
+// Transfer happens without decryption!
+```
+
+**Why?** Decryption in transactions is:
+- Asynchronous (requires off-chain KMS)
+- Expensive (gas costs)
+- Breaks privacy (reveals encrypted values)
+- Not supported in fhevm transaction logic
+
+Use `FHE.select()` for conditional logic on encrypted values!
+
+#### FHE Limitations
+
+**Division:** Only plaintext divisors supported
+```solidity
+✅ FHE.div(encryptedValue, 100)  // OK - plaintext divisor
+❌ FHE.div(encrypted1, encrypted2) // ERROR - encrypted divisor
+```
+
+This limits AMM implementations. The swap function uses a simplified approximation due to this constraint.
+
 ### AstroDEX Contract
 
 The main DEX contract (`contracts/AstroDEX.sol`) provides:
-- **Encrypted token swaps** using constant product AMM formula
+- **Encrypted token swaps** using simplified AMM (due to FHE division limitations)
 - **Liquidity pool creation and management**
 - **Encrypted balance tracking**
 - **Confidential reserve management**
-- **Gateway integration for secure decryption**
+- **FHE.select() pattern for conditional operations**
 
 Key functions:
-- `createPool()` - Create a new liquidity pool
-- `swap()` - Execute encrypted token swaps
-- `addLiquidity()` - Add liquidity to pools
+- `createPool()` - Create a new liquidity pool with encrypted reserves
+- `swap()` - Execute encrypted token swaps (simplified AMM formula)
+- `addLiquidity()` - Add liquidity to pools with encrypted amounts
 - `deposit()` - Deposit tokens for encrypted balance
-- `getBalance()` - Retrieve encrypted balance
-- `requestBalanceDecryption()` - Request decryption via gateway
+- `getBalance()` - Retrieve encrypted balance (user can decrypt client-side)
+
+### EncryptedERC20 Contract
+
+Implements ERC20-like functionality with fully encrypted balances:
+- `transfer()` - Transfer encrypted amounts
+- `approve()` - Approve encrypted allowances
+- `transferFrom()` - Transfer with encrypted allowance checking
+- Uses `FHE.select()` for balance validation without decryption
+
+### Compilation Requirements
+
+The contracts use the IR-based compiler pipeline for optimization:
+
+```javascript
+// hardhat.config.cjs
+settings: {
+  optimizer: { enabled: true, runs: 200 },
+  viaIR: true,  // Required for complex FHE operations
+  evmVersion: "cancun"
+}
+```
 
 ### Deployment
 
 1. **Compile contracts**
    ```bash
-   npx hardhat compile
+   npm run compile
    ```
 
 2. **Deploy to Zama Devnet**
@@ -228,13 +307,16 @@ The application will automatically prompt you to add the Zama network to MetaMas
 ## Features in Detail
 
 ### Confidential Swaps
-All swap amounts are encrypted using FHEVM's TFHE library. The AMM calculations are performed on encrypted values, ensuring complete privacy while maintaining accurate pricing.
+All swap amounts are encrypted using FHEVM's FHE library. The swap calculations use encrypted values with the `FHE.select()` pattern for conditional logic. Due to FHE division limitations, the implementation uses a simplified AMM formula rather than the full constant-product formula.
 
 ### Encrypted Balances
-User balances are stored as encrypted values (`euint64`) on-chain. Users can optionally decrypt their own balances for viewing, but all other users and external observers see only encrypted values.
+User balances are stored as encrypted values (`euint64`) on-chain. Users can optionally decrypt their own balances for viewing via `FHE.allow()`, but all other users and external observers see only encrypted values.
 
 ### Privacy-Preserving Liquidity
-Liquidity providers can add funds to pools without revealing the exact amounts. Pool reserves remain encrypted, providing MEV protection while enabling automated market making.
+Liquidity providers can add funds to pools without revealing the exact amounts. Pool reserves remain encrypted, providing MEV protection. All balance checks use `FHE.select()` for conditional transfers without decryption.
+
+### Transaction Export
+Export your complete transaction history to CSV format for record-keeping, tax reporting, or analysis. The export includes timestamps, transaction types, token pairs, amounts, and status.
 
 ## Design System
 

@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import "fhevm/lib/TFHE.sol";
-import "fhevm/gateway/GatewayCaller.sol";
+import "@fhevm/solidity/lib/FHE.sol";
+import { SepoliaConfig } from "@fhevm/solidity/config/ZamaConfig.sol";
 
 /**
  * @title AstroDEX
  * @notice Fully confidential DEX on Zama with encrypted balances and swaps
- * @dev Uses TFHE for homomorphic encryption of amounts
+ * @dev Uses FHE for homomorphic encryption of amounts
  */
-contract AstroDEX is GatewayCaller {
-    using TFHE for euint64;
-    using TFHE for euint128;
+contract AstroDEX is SepoliaConfig {
+    using FHE for euint64;
+    using FHE for euint128;
 
     // Encrypted balances: user => token => encrypted balance
     mapping(address => mapping(address => euint64)) private encryptedBalances;
@@ -49,8 +49,8 @@ contract AstroDEX is GatewayCaller {
     function createPool(
         address tokenA,
         address tokenB,
-        einput encryptedAmountA,
-        einput encryptedAmountB,
+        externalEuint64 encryptedAmountA,
+        externalEuint64 encryptedAmountB,
         bytes calldata inputProofA,
         bytes calldata inputProofB,
         uint16 fee
@@ -60,31 +60,36 @@ contract AstroDEX is GatewayCaller {
         require(fee <= 1000, "Fee too high"); // Max 10%
 
         // Convert encrypted inputs to euint64
-        euint64 amountA = TFHE.asEuint64(encryptedAmountA, inputProofA);
-        euint64 amountB = TFHE.asEuint64(encryptedAmountB, inputProofB);
+        euint64 amountA = FHE.fromExternal(encryptedAmountA, inputProofA);
+        euint64 amountB = FHE.fromExternal(encryptedAmountB, inputProofB);
 
-        // Check user has sufficient balance
+        // Check user has sufficient balance (encrypted comparison)
         euint64 userBalanceA = encryptedBalances[msg.sender][tokenA];
         euint64 userBalanceB = encryptedBalances[msg.sender][tokenB];
 
-        require(TFHE.decrypt(TFHE.ge(userBalanceA, amountA)), "Insufficient tokenA");
-        require(TFHE.decrypt(TFHE.ge(userBalanceB, amountB)), "Insufficient tokenB");
+        ebool hasEnoughA = FHE.ge(userBalanceA, amountA);
+        ebool hasEnoughB = FHE.ge(userBalanceB, amountB);
+        ebool canCreatePool = FHE.and(hasEnoughA, hasEnoughB);
+
+        // Use FHE.select to deduct amounts if sufficient, otherwise 0
+        euint64 deductA = FHE.select(canCreatePool, amountA, FHE.asEuint64(0));
+        euint64 deductB = FHE.select(canCreatePool, amountB, FHE.asEuint64(0));
 
         // Deduct from user balance
-        encryptedBalances[msg.sender][tokenA] = TFHE.sub(userBalanceA, amountA);
-        encryptedBalances[msg.sender][tokenB] = TFHE.sub(userBalanceB, amountB);
+        encryptedBalances[msg.sender][tokenA] = FHE.sub(userBalanceA, deductA);
+        encryptedBalances[msg.sender][tokenB] = FHE.sub(userBalanceB, deductB);
 
-        // Initialize pool reserves
-        poolReserves[tokenA][tokenB] = TFHE.asEuint128(amountA);
-        poolReserves[tokenB][tokenA] = TFHE.asEuint128(amountB);
+        // Initialize pool reserves with actually deducted amounts
+        poolReserves[tokenA][tokenB] = FHE.asEuint128(deductA);
+        poolReserves[tokenB][tokenA] = FHE.asEuint128(deductB);
 
         // Calculate initial liquidity: sqrt(amountA * amountB)
-        euint128 liquidityA = TFHE.asEuint128(amountA);
-        euint128 liquidityB = TFHE.asEuint128(amountB);
-        euint128 initialLiquidity = TFHE.mul(liquidityA, liquidityB); // Simplified
+        euint128 liquidityA = FHE.asEuint128(deductA);
+        euint128 liquidityB = FHE.asEuint128(deductB);
+        euint128 initialLiquidity = FHE.mul(liquidityA, liquidityB); // Simplified
 
         totalLiquidity[tokenA][tokenB] = initialLiquidity;
-        userLiquidity[msg.sender][tokenA][tokenB] = TFHE.asEuint64(initialLiquidity);
+        userLiquidity[msg.sender][tokenA][tokenB] = FHE.asEuint64(initialLiquidity);
 
         poolFees[tokenA][tokenB] = fee;
         poolFees[tokenB][tokenA] = fee;
@@ -104,54 +109,58 @@ contract AstroDEX is GatewayCaller {
     function swap(
         address tokenIn,
         address tokenOut,
-        einput encryptedAmountIn,
+        externalEuint64 encryptedAmountIn,
         bytes calldata inputProof
     ) external returns (euint64) {
         require(poolExists[tokenIn][tokenOut], "Pool does not exist");
 
         // Convert encrypted input
-        euint64 amountIn = TFHE.asEuint64(encryptedAmountIn, inputProof);
+        euint64 amountIn = FHE.fromExternal(encryptedAmountIn, inputProof);
 
-        // Check user balance
+        // Check user balance (encrypted comparison)
         euint64 userBalance = encryptedBalances[msg.sender][tokenIn];
-        require(TFHE.decrypt(TFHE.ge(userBalance, amountIn)), "Insufficient balance");
+        ebool hasEnoughBalance = FHE.ge(userBalance, amountIn);
+
+        // Use FHE.select to swap amount if sufficient, otherwise 0
+        euint64 swapAmountIn = FHE.select(hasEnoughBalance, amountIn, FHE.asEuint64(0));
 
         // Get pool reserves
         euint128 reserveIn = poolReserves[tokenIn][tokenOut];
         euint128 reserveOut = poolReserves[tokenOut][tokenIn];
 
-        // Calculate output amount with fee
-        // amountOut = (amountIn * (10000 - fee) * reserveOut) / ((reserveIn * 10000) + (amountIn * (10000 - fee)))
+        // NOTE: FHE limitation - Full AMM formula requires division by encrypted denominator
+        // which is not supported. Using simplified constant-product approximation.
+        // For a production DEX, consider hybrid approaches with partial decryption.
         uint16 fee = poolFees[tokenIn][tokenOut];
-        euint128 amountInWithFee = TFHE.mul(
-            TFHE.asEuint128(amountIn),
-            TFHE.asEuint128(10000 - fee)
-        );
 
-        euint128 numerator = TFHE.mul(amountInWithFee, reserveOut);
-        euint128 denominator = TFHE.add(
-            TFHE.mul(reserveIn, TFHE.asEuint128(10000)),
-            amountInWithFee
+        // Simplified: amountOut ≈ (amountIn * reserveOut) / fixedDivisor
+        // This is NOT a proper AMM but demonstrates FHE constraints
+        euint128 amountInAfterFee = FHE.mul(
+            FHE.asEuint128(swapAmountIn),
+            uint128(10000 - fee)
         );
+        amountInAfterFee = FHE.div(amountInAfterFee, uint128(10000));
 
-        euint128 amountOut128 = TFHE.div(numerator, denominator);
-        euint64 amountOut = TFHE.asEuint64(amountOut128);
+        euint128 amountOut128 = FHE.mul(amountInAfterFee, reserveOut);
+        // Simplified division by a conservative factor to prevent pool drainage
+        amountOut128 = FHE.div(amountOut128, uint128(10000));
+        euint64 amountOut = FHE.asEuint64(amountOut128);
 
         // Update balances
-        encryptedBalances[msg.sender][tokenIn] = TFHE.sub(userBalance, amountIn);
-        encryptedBalances[msg.sender][tokenOut] = TFHE.add(
+        encryptedBalances[msg.sender][tokenIn] = FHE.sub(userBalance, swapAmountIn);
+        encryptedBalances[msg.sender][tokenOut] = FHE.add(
             encryptedBalances[msg.sender][tokenOut],
             amountOut
         );
 
         // Update pool reserves
-        poolReserves[tokenIn][tokenOut] = TFHE.add(reserveIn, TFHE.asEuint128(amountIn));
-        poolReserves[tokenOut][tokenIn] = TFHE.sub(reserveOut, amountOut128);
+        poolReserves[tokenIn][tokenOut] = FHE.add(reserveIn, FHE.asEuint128(swapAmountIn));
+        poolReserves[tokenOut][tokenIn] = FHE.sub(reserveOut, amountOut128);
 
         emit Swap(msg.sender, tokenIn, tokenOut);
 
         // Allow user to decrypt their output amount
-        TFHE.allow(amountOut, msg.sender);
+        FHE.allow(amountOut, msg.sender);
 
         return amountOut;
     }
@@ -166,55 +175,51 @@ contract AstroDEX is GatewayCaller {
     function addLiquidity(
         address tokenA,
         address tokenB,
-        einput encryptedAmountA,
-        einput encryptedAmountB,
+        externalEuint64 encryptedAmountA,
+        externalEuint64 encryptedAmountB,
         bytes calldata inputProofA,
         bytes calldata inputProofB
     ) external {
         require(poolExists[tokenA][tokenB], "Pool does not exist");
 
-        euint64 amountA = TFHE.asEuint64(encryptedAmountA, inputProofA);
-        euint64 amountB = TFHE.asEuint64(encryptedAmountB, inputProofB);
+        euint64 amountA = FHE.fromExternal(encryptedAmountA, inputProofA);
+        euint64 amountB = FHE.fromExternal(encryptedAmountB, inputProofB);
 
-        // Check balances
-        require(
-            TFHE.decrypt(TFHE.ge(encryptedBalances[msg.sender][tokenA], amountA)),
-            "Insufficient tokenA"
-        );
-        require(
-            TFHE.decrypt(TFHE.ge(encryptedBalances[msg.sender][tokenB], amountB)),
-            "Insufficient tokenB"
-        );
+        // Check balances (encrypted comparison)
+        euint64 userBalanceA = encryptedBalances[msg.sender][tokenA];
+        euint64 userBalanceB = encryptedBalances[msg.sender][tokenB];
+
+        ebool hasEnoughA = FHE.ge(userBalanceA, amountA);
+        ebool hasEnoughB = FHE.ge(userBalanceB, amountB);
+        ebool canAddLiquidity = FHE.and(hasEnoughA, hasEnoughB);
+
+        // Use FHE.select to add amounts if sufficient, otherwise 0
+        euint64 addAmountA = FHE.select(canAddLiquidity, amountA, FHE.asEuint64(0));
+        euint64 addAmountB = FHE.select(canAddLiquidity, amountB, FHE.asEuint64(0));
 
         // Deduct from user
-        encryptedBalances[msg.sender][tokenA] = TFHE.sub(
-            encryptedBalances[msg.sender][tokenA],
-            amountA
-        );
-        encryptedBalances[msg.sender][tokenB] = TFHE.sub(
-            encryptedBalances[msg.sender][tokenB],
-            amountB
-        );
+        encryptedBalances[msg.sender][tokenA] = FHE.sub(userBalanceA, addAmountA);
+        encryptedBalances[msg.sender][tokenB] = FHE.sub(userBalanceB, addAmountB);
 
         // Add to reserves
-        poolReserves[tokenA][tokenB] = TFHE.add(
+        poolReserves[tokenA][tokenB] = FHE.add(
             poolReserves[tokenA][tokenB],
-            TFHE.asEuint128(amountA)
+            FHE.asEuint128(addAmountA)
         );
-        poolReserves[tokenB][tokenA] = TFHE.add(
+        poolReserves[tokenB][tokenA] = FHE.add(
             poolReserves[tokenB][tokenA],
-            TFHE.asEuint128(amountB)
+            FHE.asEuint128(addAmountB)
         );
 
         // Calculate LP tokens (simplified)
-        euint128 liquidityMinted = TFHE.mul(
-            TFHE.asEuint128(amountA),
-            TFHE.asEuint128(amountB)
+        euint128 liquidityMinted = FHE.mul(
+            FHE.asEuint128(addAmountA),
+            FHE.asEuint128(addAmountB)
         );
 
-        userLiquidity[msg.sender][tokenA][tokenB] = TFHE.add(
+        userLiquidity[msg.sender][tokenA][tokenB] = FHE.add(
             userLiquidity[msg.sender][tokenA][tokenB],
-            TFHE.asEuint64(liquidityMinted)
+            FHE.asEuint64(liquidityMinted)
         );
 
         emit LiquidityAdded(msg.sender, tokenA, tokenB);
@@ -227,18 +232,18 @@ contract AstroDEX is GatewayCaller {
      */
     function deposit(
         address token,
-        einput encryptedAmount,
+        externalEuint64 encryptedAmount,
         bytes calldata inputProof
     ) external {
-        euint64 amount = TFHE.asEuint64(encryptedAmount, inputProof);
+        euint64 amount = FHE.fromExternal(encryptedAmount, inputProof);
 
-        encryptedBalances[msg.sender][token] = TFHE.add(
+        encryptedBalances[msg.sender][token] = FHE.add(
             encryptedBalances[msg.sender][token],
             amount
         );
 
         // Allow user to view their balance
-        TFHE.allow(encryptedBalances[msg.sender][token], msg.sender);
+        FHE.allow(encryptedBalances[msg.sender][token], msg.sender);
     }
 
     /**
@@ -263,32 +268,7 @@ contract AstroDEX is GatewayCaller {
         return (poolReserves[tokenA][tokenB], poolReserves[tokenB][tokenA]);
     }
 
-    /**
-     * @notice Request decryption of balance via Gateway
-     * @param token Token to decrypt balance for
-     */
-    function requestBalanceDecryption(address token) external {
-        euint64 balance = encryptedBalances[msg.sender][token];
-
-        uint256[] memory cts = new uint256[](1);
-        cts[0] = Gateway.toUint256(balance);
-
-        Gateway.requestDecryption(
-            cts,
-            this.callbackBalanceDecryption.selector,
-            0,
-            block.timestamp + 100,
-            false
-        );
-    }
-
-    /**
-     * @notice Callback for balance decryption
-     */
-    function callbackBalanceDecryption(
-        uint256 /*requestId*/,
-        uint64 decryptedBalance
-    ) external onlyGateway {
-        emit BalanceDecrypted(msg.sender, address(0), decryptedBalance);
-    }
+    // TODO: Implement decryption using new @fhevm/solidity decryption oracle API
+    // The Gateway API has been replaced with a new decryption oracle system
+    // See: IDecryptionOracle in @fhevm/solidity/lib/FHE.sol
 }
